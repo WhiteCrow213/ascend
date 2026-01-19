@@ -1,6 +1,21 @@
 @extends('layouts.app')
 
 @section('content')
+
+<script>
+  // Force sentence case (capitalize first letter)
+  document.addEventListener('input', function (e) {
+    if (!e.target.classList.contains('sentence')) return;
+
+    let val = e.target.value;
+    if (!val) return;
+
+    // Trim leading spaces, capitalize first character only
+    e.target.value =
+      val.charAt(0).toUpperCase() + val.slice(1);
+  });
+</script>
+
 <div class="wrap">
 
   <h1>Manual Pre-Registration (Walk-in)</h1>
@@ -37,22 +52,22 @@
       <div class="grid3">
         <div class="field">
           <label>First Name</label>
-          <input name="FistName" value="{{ old('FistName') }}" required autofocus>
+          <input name="FirstName" value="{{ old('FirstName') }}" required autofocus class="sentence">
         </div>
 
         <div class="field">
           <label>Middle Name</label>
-          <input name="MidName" value="{{ old('MidName') }}">
+          <input name="MidName" value="{{ old('MidName') }}" class="sentence">
         </div>
 
         <div class="field">
           <label>Last Name</label>
-          <input name="LastName" value="{{ old('LastName') }}" required>
+          <input name="LastName" value="{{ old('LastName') }}" required class="sentence">
         </div>
 
         <div class="field">
           <label>Suffix</label>
-          <input name="Suffix" value="{{ old('Suffix') }}">
+          <input name="Suffix" value="{{ old('Suffix') }}" class="sentence">
         </div>
 
         <div class="field">
@@ -96,7 +111,7 @@
 
         <div class="field">
           <label>Religion</label>
-          <input name="Religion" value="{{ old('Religion') }}" required>
+          <input name="Religion" value="{{ old('Religion') }}" required class="sentence">
         </div>
 
         <div class="field">
@@ -127,12 +142,12 @@
       <div class="grid2">
         <div class="field">
           <label>Primary School</label>
-          <input name="PrimarySchool" value="{{ old('PrimarySchool') }}" required disabled>
+          <input name="PrimarySchool" value="{{ old('PrimarySchool') }}" required disabled class="sentence">
         </div>
 
         <div class="field">
           <label>Primary School Address</label>
-          <input name="PrimarySchool_Address" value="{{ old('PrimarySchool_Address') }}" required disabled>
+          <input name="PrimarySchool_Address" value="{{ old('PrimarySchool_Address') }}" required disabled class="sentence">
         </div>
 
         <div class="field">
@@ -146,14 +161,14 @@
         <div class="field spacer" aria-hidden="true"></div>
 
         {{-- Secondary School moved to next line (full width) --}}
-        <div class="field" style="grid-column:1/-1;">
+        <div class="field medium" style="grid-column:1/-1;">
           <label>Secondary School</label>
-          <input name="SecondarySchool" value="{{ old('SecondarySchool') }}" required disabled>
+          <input name="SecondarySchool" value="{{ old('SecondarySchool') }}" required disabled class="sentence">
         </div>
 
         <div class="field">
           <label>Secondary School Address</label>
-          <input name="SecondarySchool_Address" value="{{ old('SecondarySchool_Address') }}" required disabled>
+          <input name="SecondarySchool_Address" value="{{ old('SecondarySchool_Address') }}" required disabled class="sentence">
         </div>
 
         <div class="field">
@@ -167,7 +182,7 @@
         {{-- Last School Attended not too long --}}
         <div class="field short">
           <label>Last School Attended</label>
-          <input name="LastSchoolAttended" value="{{ old('LastSchoolAttended') }}" required disabled>
+          <input name="LastSchoolAttended" value="{{ old('LastSchoolAttended') }}" required disabled class="sentence">
         </div>
 
         <div class="field spacer" aria-hidden="true"></div>
@@ -324,6 +339,12 @@
 .field { display:flex; flex-direction: column; min-width: 0; }
 .field.short { max-width: 520px; }          /* keeps Last School Attended shorter */
 .field.spacer { visibility: hidden; }       /* keeps grid alignment without showing */
+
+/* width helpers */
+.field.medium {
+  max-width: 520px;   /* adjust this number freely */
+}
+
 
 label { font-size: 12px; font-weight: 600; margin-bottom: 6px; color:#374151; }
 

@@ -18,7 +18,7 @@ class PreRegistrationController extends Controller
     {
         $validated = $request->validate([
             // STEP 1 Personal Info
-            'FistName' => ['required','string','max:50'],
+            'FirstName' => ['required','string','max:50'],
             'MidName' => ['nullable','string','max:50'],
             'LastName' => ['required','string','max:50'],
             'Suffix' => ['nullable','string','max:10'],
