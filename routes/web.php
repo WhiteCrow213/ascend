@@ -1,33 +1,40 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-
-Route::get('/login', function () {
-    return view('login');
-});
-
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->name('dashboard');
-
-Route::get('/admission', function () {
-    return view('admission.index');
-})->name('admission.index');
-
-Route::get('/admission/pre-registration', function () {
-    return view('admission.pre_registration.index');
-})->name('admission.pre_registration.index');
-
-Route::get('/admission/enrollment', function () {
-    return view('admission.enrollment.index');
-})->name('admission.enrollment.index');
-
 use App\Http\Controllers\Admissions\PreRegistrationController;
 
-Route::prefix('admission')->group(function () {
+/*
+|--------------------------------------------------------------------------
+| Core Routes
+|--------------------------------------------------------------------------
+*/
+
+Route::view('/login', 'login')->name('login');
+Route::view('/dashboard', 'dashboard')->name('dashboard');
+
+/*
+|--------------------------------------------------------------------------
+| Admissions (URL prefix: /admission)
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('admission')->name('admission.')->group(function () {
+
+    // Admission Hub
+    Route::view('/', 'admission.index')->name('index');
+
+    // Pre-registration Hub
+    Route::view('/pre-registration', 'admission.pre_registration.index')
+        ->name('pre_registration.index');
+
+    // Enrollment Hub
+    Route::view('/enrollment', 'admission.enrollment.index')
+        ->name('enrollment.index');
+
+    // Manual Pre-registration (Walk-in)
     Route::get('/pre-registration/manual', [PreRegistrationController::class, 'create'])
-        ->name('admission.prereg.manual');
+        ->name('prereg.manual');
 
     Route::post('/pre-registration/manual', [PreRegistrationController::class, 'store'])
-        ->name('admission.prereg.store');
+        ->name('prereg.store');
 });

@@ -6,13 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class StudentInfo extends Model
 {
-    // Database: student, Table: info
-    protected $table = 'student.info';
-
-    protected $primaryKey = 'id';
-
-    // If your table does NOT have created_at and updated_at columns
+    protected $table = 'tbl_student_info';
+    protected $primaryKey = 'studID';
     public $timestamps = false;
+
+    // If studID is AUTO-INCREMENT INT in phpMyAdmin, keep these:
+    public $incrementing = true;
+    protected $keyType = 'int';
 
     protected $guarded = [];
 }

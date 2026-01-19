@@ -5,60 +5,70 @@ namespace App\Http\Controllers\Admissions;
 use App\Http\Controllers\Controller;
 use App\Models\StudentInfo;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PreRegistrationController extends Controller
 {
     public function create()
     {
         return view('admission.pre_registration.manual');
-
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            // STEP 1 Personal Info
-            'FirstName' => ['required','string','max:50'],
-            'MidName' => ['nullable','string','max:50'],
-            'LastName' => ['required','string','max:50'],
-            'Suffix' => ['nullable','string','max:10'],
+            'FirstName'   => ['required', 'string', 'max:50'],
+            'MidName'     => ['nullable', 'string', 'max:50'],
+            'LastName'    => ['required', 'string', 'max:50'],
+            'Suffix'      => ['nullable', 'string', 'max:10'],
 
-            'ContactNo' => ['required','string','max:20'],
-            'Birthdate' => ['required','date'],
-            'email' => ['required','email','max:50'],
-            'Gender' => ['required','string','max:10'],
-            'Citizenship' => ['required','string','max:20'],
-            'CivilStatus' => ['required','string','max:20'],
-            'Religion' => ['required','string','max:50'],
+            'ContactNo'   => ['required', 'string', 'max:20'],
+            'email'       => ['required', 'email', 'max:50'],
+            'Birthdate'   => ['required', 'date'],
+            'Gender'      => ['required', 'string', 'max:10'],
+            'Citizenship' => ['required', 'string', 'max:20'],
+            'CivilStatus' => ['required', 'string', 'max:20'],
+            'Religion'    => ['required', 'string', 'max:50'],
 
-            'Height' => ['nullable','integer'],
-            'Weight' => ['nullable','integer'],
-            'Bloodtype' => ['nullable','string','max:10'],
+            'Bloodtype'   => ['nullable', 'string', 'max:10'],
+            'Height'      => ['nullable', 'string', 'max:10'],
+            'Weight'      => ['nullable', 'string', 'max:10'],
 
-            // STEP 2 Educational Background
-            'PrimarySchool' => ['required','string','max:40'],
-            'PrimarySchool_Address' => ['required','string','max:100'],
-            'YearGradPrimary' => ['required','string','max:4'],
+            'PrimarySchool'           => ['required', 'string', 'max:100'],
+            'PrimarySchool_Address'   => ['required', 'string', 'max:100'],
+            'YearGradPrimary'         => ['required', 'string', 'max:4'],
 
-            'SecondarySchool' => ['required','string','max:100'],
-            'SecondarySchool_Address' => ['required','string','max:100'],
-            'YearGradSecondary' => ['required','string','max:4'],
+            'SecondarySchool'         => ['required', 'string', 'max:100'],
+            'SecondarySchool_Address' => ['required', 'string', 'max:100'],
+            'YearGradSecondary'       => ['required', 'string', 'max:4'],
 
-            'LastSchoolAttended' => ['required','string','max:100'],
+            'LastSchoolAttended'      => ['required', 'string', 'max:100'],
 
-            // new program choices
-'FirstProgramChoice' => ['required','string','max:150'],
-'SecondProgramChoice' => ['required','string','max:150','different:FirstProgramChoice'],
+            'FirstProgramChoice'      => ['required', 'string', 'max:150'],
+            'SecondProgramChoice'     => ['required', 'string', 'max:150', 'different:FirstProgramChoice'],
         ]);
 
-        // Generate ApplicantNum (auto)
-        $nextId = (StudentInfo::max('id') ?? 0) + 1;
-        $validated['ApplicantNum'] = 'APP-' . date('Y') . '-' . str_pad((string)$nextId, 6, '0', STR_PAD_LEFT);
+        $student = DB::transaction(function () use ($validated) {
+            // Create first so we get studID
+            $student = StudentInfo::create($validated);
 
-        StudentInfo::create($validated);
+            // Generate Applicant Number based on studID
+            $appNo = 'APP-' . now()->format('Y') . '-' . str_pad($student->studID, 6, '0', STR_PAD_LEFT);
 
+            $student->ApplicantNum = $appNo;
+
+            // TEMP: stud_number mirrors ApplicantNum for now
+            $student->stud_number = $appNo;
+
+            $student->save();
+
+            return $student;
+        });
+
+        // ✅ Redirect to the manual prereg page, but show the acknowledgement screen
         return redirect()
             ->route('admission.prereg.manual')
-            ->with('success', 'Saved! Applicant No: ' . $validated['ApplicantNum']);
+            ->with('prereg_saved', true)
+            ->with('applicant_no', $student->ApplicantNum);
     }
 }
