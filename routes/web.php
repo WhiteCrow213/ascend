@@ -21,3 +21,13 @@ Route::get('/admission/pre-registration', function () {
 Route::get('/admission/enrollment', function () {
     return view('admission.enrollment.index');
 })->name('admission.enrollment.index');
+
+use App\Http\Controllers\Admissions\PreRegistrationController;
+
+Route::prefix('admission')->group(function () {
+    Route::get('/pre-registration/manual', [PreRegistrationController::class, 'create'])
+        ->name('admission.prereg.manual');
+
+    Route::post('/pre-registration/manual', [PreRegistrationController::class, 'store'])
+        ->name('admission.prereg.store');
+});
