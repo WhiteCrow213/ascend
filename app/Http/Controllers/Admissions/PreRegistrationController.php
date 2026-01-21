@@ -81,7 +81,12 @@ public function index(Request $request)
         ]);
 
         $student = DB::transaction(function () use ($validated) {
-            $student = StudentInfo::create($validated);
+            $student = StudentInfo::create(
+    array_merge($validated, [
+        'application_status' => 'pending',
+    ])
+);
+
 
             $appNo = 'APP-' . now()->format('Y') . '-' . str_pad($student->studID, 6, '0', STR_PAD_LEFT);
             $student->ApplicantNum = $appNo;

@@ -85,10 +85,15 @@
 
             <td>{{ $a->FirstProgramChoice }}</td>
 
-            <td>{{ $a->created_at->format('M d, Y') }}</td>
+          <td>{{ $a->created_at ? \Carbon\Carbon::parse($a->created_at)->format('M d, Y') : '—' }}</td>
+
+
 
             <td>
-              <span class="badge">Pending</span>
+              <span class="badge">
+  {{ ucfirst($a->application_status ?? 'pending') }}
+</span>
+
             </td>
 
             <td class="actions">
