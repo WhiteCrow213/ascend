@@ -18,7 +18,7 @@
 
 <div class="wrap">
 
-  <h1>Manual Pre-Registration (Walk-in)</h1>
+  <h1>Manual Pre-Registration</h1>
   <p>Step 1: Personal Information → Step 2: Educational Background → Step 3: Program Choices</p>
 
   {{-- ✅ SAVE ACKNOWLEDGEMENT --}}

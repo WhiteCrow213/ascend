@@ -9,11 +9,43 @@ use Illuminate\Support\Facades\DB;
 
 class PreRegistrationController extends Controller
 {
+    // ✅ GRID / INBOX
+public function index(Request $request)
+{
+    $search = trim((string) $request->query('q', ''));
+
+    $query = StudentInfo::query();
+
+    // SEARCH FILTER
+    if ($search !== '') {
+        $query->where(function ($q) use ($search) {
+            $q->where('ApplicantNum', 'like', "%{$search}%")
+              ->orWhere('LastName', 'like', "%{$search}%")
+              ->orWhere('FirstName', 'like', "%{$search}%")
+              ->orWhere('FirstProgramChoice', 'like', "%{$search}%");
+        });
+    }
+
+    // ORDER: newest first
+    $applicants = $query
+        ->orderByDesc('created_at')
+        ->paginate(10)
+        ->appends($request->query());
+
+    return view(
+        'admission.pre_registration.pre-reg_grid',
+        compact('applicants', 'search')
+    );
+}
+
+
+    // ✅ MANUAL PRE-REGISTRATION FORM
     public function create()
     {
         return view('admission.pre_registration.manual');
     }
 
+    // ✅ STORE PRE-REGISTRATION
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -49,23 +81,16 @@ class PreRegistrationController extends Controller
         ]);
 
         $student = DB::transaction(function () use ($validated) {
-            // Create first so we get studID
             $student = StudentInfo::create($validated);
 
-            // Generate Applicant Number based on studID
             $appNo = 'APP-' . now()->format('Y') . '-' . str_pad($student->studID, 6, '0', STR_PAD_LEFT);
-
             $student->ApplicantNum = $appNo;
-
-            // TEMP: stud_number mirrors ApplicantNum for now
             $student->stud_number = $appNo;
-
             $student->save();
 
             return $student;
         });
 
-        // ✅ Redirect to the manual prereg page, but show the acknowledgement screen
         return redirect()
             ->route('admission.prereg.manual')
             ->with('prereg_saved', true)

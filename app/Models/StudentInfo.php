@@ -15,4 +15,10 @@ class StudentInfo extends Model
     protected $keyType = 'int';
 
     protected $guarded = [];
+
+    protected $casts = [
+    'created_at' => 'datetime',
+    'updated_at' => 'datetime',
+];
+
 }

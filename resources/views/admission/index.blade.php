@@ -1,106 +1,96 @@
 @extends('layouts.app')
 
-@section('title', 'Admissions')
+@push('styles')
+<link rel="stylesheet" href="{{ asset('css/dashboard.css') }}">
+<style>
+/* Admissions hub card tweaks */
+.adm-grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.adm-card{
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 18px;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  transition: box-shadow .2s ease, transform .2s ease;
+}
+
+.adm-card:hover{
+  box-shadow: 0 10px 30px rgba(17,24,39,.08);
+  transform: translateY(-2px);
+}
+
+.adm-icon{
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: rgba(118,0,188,.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+/* emoji safely injected */
+.adm-icon::before{
+  content: attr(data-icon);
+}
+
+.adm-title{
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.adm-desc{
+  font-size: 14px;
+  color: #6b7280;
+  margin: 2px 0 0;
+}
+
+.adm-disabled{
+  opacity: .55;
+  pointer-events: none;
+}
+</style>
+@endpush
 
 @section('content')
-<style>
-  .ad-wrap{
-    min-height: calc(100vh - 120px);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  }
+<div class="max-w-5xl mx-auto px-6 py-10">
 
-  .ad-panel{
-    width: min(520px, 95%);
-    background:#fff;
-    border-radius:20px;
-    padding:20px;
-    border:1px solid rgba(0,0,0,.08);
-    box-shadow:0 20px 50px rgba(0,0,0,.08);
-  }
+  <h1 class="text-3xl font-bold mb-2">Admissions</h1>
+  <p class="text-gray-600 mb-8">
+    Choose a section to manage admissions workflows.
+  </p>
 
-  .ad-title{
-    font-size:20px;
-    font-weight:800;
-    margin:0 0 4px;
-  }
+  <div class="adm-grid">
 
-  .ad-sub{
-    font-size:13px;
-    color:#6b7280;
-    margin-bottom:16px;
-  }
+    {{-- PRE-REGISTRATION --}}
+    <a href="{{ route('admission.prereg.grid') }}" class="adm-card">
+      <div class="adm-icon" data-icon="📝"></div>
+      <div>
+        <h2 class="adm-title">Pre-registration</h2>
+        <p class="adm-desc">Applicants, exams, requirements</p>
+      </div>
+    </a>
 
-  .ad-grid{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:14px;
-  }
-
-  .ad-box{
-    text-decoration:none;
-    border:1px solid rgba(0,0,0,.08);
-    border-radius:16px;
-    padding:16px;
-    display:flex;
-    gap:12px;
-    align-items:center;
-    color:#111;
-  }
-
-  .ad-box:hover{
-    box-shadow:0 12px 30px rgba(0,0,0,.10);
-    border-color:#7600bc;
-  }
-
-  .ad-icon{
-    width:36px;
-    height:36px;
-    border-radius:14px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background:rgba(118,0,188,.12);
-    font-size:18px;
-  }
-
-  .ad-name{
-    font-weight:800;
-  }
-
-  .ad-desc{
-    font-size:12px;
-    color:#6b7280;
-  }
-
-  @media(max-width:500px){
-    .ad-grid{ grid-template-columns:1fr; }
-  }
-</style>
-
-<div class="ad-wrap">
-  <div class="ad-panel">
-    <div class="ad-title">Admissions</div>
-    <div class="ad-sub">Choose a section to manage admissions workflows.</div>
-
-    <div class="ad-grid">
-      <a class="ad-box" href="{{ route('admission.pre_registration.index') }}">
-        <div class="ad-icon">📝</div>
-        <div>
-          <div class="ad-name">Pre-registration</div>
-          <div class="ad-desc">Applicants, exams, requirements</div>
-        </div>
-      </a>
-
-      <a class="ad-box" href="{{ route('admission.enrollment.index') }}">
-        <div class="ad-icon">🎓</div>
-        <div>
-          <div class="ad-name">Enrollment</div>
-          <div class="ad-desc">Subjects, assessment, COR</div>
-        </div>
-      </a>
+    {{-- ENROLLMENT (disabled for now) --}}
+    <div class="adm-card adm-disabled">
+      <div class="adm-icon" data-icon="🎓"></div>
+      <div>
+        <h2 class="adm-title">Enrollment</h2>
+        <p class="adm-desc">Subjects, assessment, COR</p>
+      </div>
     </div>
+
   </div>
 </div>
 @endsection
