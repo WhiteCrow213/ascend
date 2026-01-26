@@ -25,13 +25,13 @@
             + Walk-in Pre-Registration
           </a>
         </div>
-<div class="prereg-actions-right">
-  <a id="preregResetBtn" href="{{ route('admission.prereg.grid') }}" class="btn">
-    Reset
-  </a>
-</div>
 
-             </div>
+        <div class="prereg-actions-right">
+          <a id="preregResetBtn" href="{{ route('admission.prereg.grid') }}" class="btn">
+            Reset
+          </a>
+        </div>
+      </div>
 
       {{-- BOTTOM ROW: FILTERS --}}
       <form id="preregSearch"
@@ -85,15 +85,21 @@
 
             <td>{{ $a->FirstProgramChoice }}</td>
 
-          <td>{{ $a->created_at ? \Carbon\Carbon::parse($a->created_at)->format('M d, Y') : '—' }}</td>
-
-
+            {{-- FIX: created_at may be string, so parse safely --}}
+            <td>
+              @php
+                $dt = null;
+                if (!empty($a->created_at)) {
+                  try { $dt = \Illuminate\Support\Carbon::parse($a->created_at); } catch (\Throwable $e) { $dt = null; }
+                }
+              @endphp
+              {{ $dt ? $dt->format('M d, Y') : '—' }}
+            </td>
 
             <td>
               <span class="badge">
-  {{ ucfirst($a->application_status ?? 'pending') }}
-</span>
-
+                {{ ucfirst($a->application_status ?? 'pending') }}
+              </span>
             </td>
 
             <td class="actions">
