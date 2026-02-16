@@ -49,7 +49,41 @@ class EnrollmentController extends Controller
         return view('admission.enrollment.index', compact('students', 'search', 'activeTermId'));
     }
 
-    // ✅ Start Enrollment (creates harmless draft)
+    // ✅ Enrollment Workspace (Draft view)
+    public function show(int $enrollmentId)
+    {
+        $enrollment = DB::table('tbl_enrollments as e')
+            ->join('tbl_student_info as s', 's.studID', '=', 'e.studID')
+            ->leftJoin('tbl_terms as t', 't.term_id', '=', 'e.term_id')
+            ->select([
+                'e.enrollment_id',
+                'e.studID',
+                'e.term_id',
+                'e.status',
+                'e.finalized_at',
+                'e.created_at',
+                'e.updated_at',
+                // student snapshot (only what we know exists)
+                's.ApplicantNum',
+                's.LastName',
+                's.FirstName',
+                DB::raw('s.MidName as MiddleName'),
+                's.FirstProgramChoice',
+                's.application_status',
+                // term (keep generic; may be null if columns differ)
+                DB::raw('t.term_id as term_term_id'),
+            ])
+            ->where('e.enrollment_id', $enrollmentId)
+            ->first();
+
+        if (!$enrollment) {
+            abort(404);
+        }
+
+        return view('admission.enrollment.show', compact('enrollment'));
+    }
+
+    // ✅ Start Enrollment (creates harmless draft) + opens Enrollment Workspace
     public function start(Request $request, int $studID)
     {
         $activeTermId = DB::table('tbl_terms')->where('is_active', 1)->value('term_id');
@@ -58,13 +92,14 @@ class EnrollmentController extends Controller
             return back()->with('enroll_err', 'No active term set. Please activate a term first.');
         }
 
-        $exists = DB::table('tbl_enrollments')
+        // Find existing draft/enrollment for this student + active term
+        $enrollmentId = DB::table('tbl_enrollments')
             ->where('studID', $studID)
             ->where('term_id', $activeTermId)
-            ->exists();
+            ->value('enrollment_id');
 
-        if (!$exists) {
-            DB::table('tbl_enrollments')->insert([
+        if (empty($enrollmentId)) {
+            $enrollmentId = DB::table('tbl_enrollments')->insertGetId([
                 'studID'       => $studID,
                 'term_id'      => $activeTermId,
                 'status'       => 'draft',
@@ -74,6 +109,9 @@ class EnrollmentController extends Controller
             ]);
         }
 
-        return back()->with('enroll_ok', 'Draft enrollment started (not counted as enrolled).');
+        // ✅ Option A: go straight to the Enrollment Workspace
+        return redirect()
+            ->route('admission.enrollment.show', $enrollmentId)
+            ->with('enroll_ok', 'Draft enrollment opened.');
     }
 }

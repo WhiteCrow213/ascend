@@ -150,10 +150,10 @@ class PreRegistrationController extends Controller
             'SecondProgramChoice'     => ['required', 'string', 'max:150', 'different:FirstProgramChoice'],
 
             // ✅ Address dropdown PSGC codes (add these fields in your manual.blade.php form)
-            'region_psgc'   => ['required', 'size:10'],
-            'province_psgc' => ['nullable', 'size:10'], // NCR may be NULL
-            'citymun_psgc'  => ['required', 'size:10'],
-            'brgy_psgc'     => ['required', 'size:10'],
+            'region_psgc'   => ['required', 'string', 'max:10'],
+            'province_psgc' => ['nullable', 'string', 'max:10'], // NCR may be NULL
+            'citymun_psgc'  => ['required', 'string', 'max:10'],
+            'brgy_psgc'     => ['required', 'string', 'max:10'],
 
             // ✅ Applicant Type (Step 4)
             'applicant_type' => ['required', 'in:Freshman,Transferee'],

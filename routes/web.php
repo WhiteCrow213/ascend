@@ -7,6 +7,7 @@ use App\Http\Controllers\Admissions\PreRegistrationStatusController;
 use App\Http\Controllers\GeoController;
 use App\Http\Controllers\Admissions\EnrollmentController;
 use App\Http\Controllers\Utilities\TermController;
+use App\Http\Controllers\AuthController;
 
 
 
@@ -25,11 +26,25 @@ use App\Http\Controllers\Utilities\TermController;
 
 // Login page (if you already have resources/views/login.blade.php)
 Route::get('/login', function () {
+    if (session()->has('ascend_user_id')) {
+        return redirect()->route('dashboard');
+    }
     return view('login');
 })->name('login');
 
+// Handle login (POST)
+Route::post('/login', [AuthController::class, 'login'])->name('auth.login');
+
+// Handle logout (POST)
+Route::post('/logout', [AuthController::class, 'logout'])->name('auth.logout');
+
+
 // Dashboard (your layout/sidebar calls route('dashboard'))
-Route::get('/dashboard', function () {
+Route::get('/dashboard', function (\Illuminate\Http\Request $request) {
+    if (!session()->has('ascend_user_id')) {
+        session(['url.intended' => $request->fullUrl()]);
+        return redirect()->route('login');
+    }
     return view('dashboard');
 })->name('dashboard');
 
@@ -71,6 +86,10 @@ Route::get('/enrollment', [EnrollmentController::class, 'index'])
 // Start enrollment (creates draft)
 Route::post('/enrollment/{studID}/start', [EnrollmentController::class, 'start'])
     ->name('admission.enrollment.start');
+
+Route::get('/enrollment/workspace/{enrollmentId}', [EnrollmentController::class, 'show'])
+    ->name('admission.enrollment.show');
+
 
 
 

@@ -50,16 +50,34 @@
         .login-box button:hover {
             background: #1e40af;
         }
-    </style>
+    
+        .error-box{
+            background:#ffe7ea;
+            color:#8a1f2d;
+            padding:10px 12px;
+            border-radius:6px;
+            margin-bottom:12px;
+            font-size:14px;
+        }
+</style>
 </head>
 <body>
 
 <div class="login-box">
     <h2>DCPC IMS</h2>
 
-    <form>
-        <input type="email" placeholder="Email" required>
-        <input type="password" placeholder="Password" required>
+    <form method="POST" action="{{ route('auth.login') }}">
+        @csrf
+
+        @if ($errors->any())
+            <div class="error-box">
+                {{ $errors->first() }}
+            </div>
+        @endif
+
+
+        <input type="email" name="email" placeholder="Email" value="{{ old('email') }}" required autofocus>
+        <input type="password" name="password" placeholder="Password" required>
 
         <button type="submit">Login</button>
     </form>
