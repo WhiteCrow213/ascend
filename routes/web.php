@@ -114,10 +114,16 @@ Route::get('/pre-registration/success/{studID}', [PreRegistrationController::cla
     Route::put('/prereg/{studID}/status', [PreRegistrationStatusController::class, 'updateStatus'])
         ->name('admission.prereg.status');
 
-        Route::prefix('utilities')->group(function () {
+});
+
+
+// ===============================
+// UTILITIES MODULE
+// ===============================
+Route::prefix('utilities')->group(function () {
     Route::get('/terms', [TermController::class, 'index'])->name('utilities.terms.index');
     Route::post('/terms', [TermController::class, 'store'])->name('utilities.terms.store');
+    Route::patch('/terms/{termId}', [TermController::class, 'update'])->name('utilities.terms.update');
     Route::post('/terms/{termId}/active', [TermController::class, 'setActive'])->name('utilities.terms.active');
 });
 
-});

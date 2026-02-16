@@ -11,6 +11,21 @@
     text-align: left !important;
 }
 
+/* Edit button: white with purple text (ASCEND style) */
+.terms-btn-edit{
+  background:#ffffff;
+  border:1.5px solid #6d28d9;
+  color:#6d28d9;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+}
+.terms-btn-edit:hover{
+  background:#f5f3ff;
+}
+
 
 
 /* Restore table spacing (Utilities Terms) */
@@ -49,13 +64,21 @@
      ========================================================= */
 
 
-  /* School Year textbox: keep consistent with other fields */
-.sy-input{ max-width: 100%; }
+     /* School Year textbox only */
+.sy-input{ width:100%; max-width:none; }
 
-  .prereg-wrap{ padding-bottom: 28px; }
+.prereg-wrap{ padding-bottom: 28px; }
 
   /* Purple header band like the grid */
-  .terms-hero{
+  
+.term-helper{
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.2;
+  color: #6b7280;
+}
+
+.terms-hero{
     border-radius: 18px 18px 0 0;
     background: #6a00b8;
     padding: 22px 22px 18px;
@@ -139,7 +162,6 @@
     outline: none;
     width: 100%;
     background: #fff;
-    box-sizing: border-box;
   }
   .terms-input:focus{
     border-color: #c4b5fd;
@@ -284,16 +306,103 @@
   }
 
 
-/* === School Year textbox: keep consistent with other fields === */
-#school_year{ width: 100% !important; max-width: 100% !important; }
-
-
 /* === Normalize height for textbox & dropdown (visual only) === */
 .terms-input,
 .terms-select{
+  box-sizing: border-box;
   height: 44px;
   line-height: 44px;
 }
+
+
+  /* ---------- Terms Edit Modal (UI only) ---------- */
+  .term-modal-backdrop{
+    position: fixed;
+    inset: 0;
+    background: rgba(17,24,39,.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    z-index: 9999;
+  }
+  .term-modal-backdrop.show{ display:flex; }
+  .term-modal{
+    width: 100%;
+    max-width: 760px;
+    background:#fff;
+    border-radius: 18px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.18);
+    overflow: hidden;
+  }
+  .term-modal-header{
+    display:flex;
+    align-items:flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #eef2f7;
+  }
+  .term-modal-title{
+    font-weight: 900;
+    font-size: 16px;
+  }
+  .term-modal-sub{
+    margin-top: 4px;
+    color:#6b7280;
+    font-size: 13px;
+    line-height: 1.2;
+  }
+  .term-modal-x{
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    background:#fff;
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .term-modal-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 14px 16px 10px;
+  }
+  .term-modal-label{
+    display:block;
+    font-weight: 800;
+    margin-bottom: 6px;
+  }
+  .term-modal-actions{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px 16px;
+    border-top: 1px solid #eef2f7;
+  }
+  .term-modal-note{
+    font-size: 13px;
+    color:#92400e;
+    background:#fffbeb;
+    border:1px solid #fde68a;
+    padding: 8px 10px;
+    border-radius: 12px;
+  }
+  .term-modal-buttons{
+    display:flex;
+    gap: 10px;
+    align-items:center;
+    justify-content:flex-end;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 720px){
+    .term-modal-grid{ grid-template-columns: 1fr; }
+    .term-modal-actions{ flex-direction: column; align-items: stretch; }
+    .term-modal-buttons{ justify-content: stretch; }
+  }
 
 </style>
 @endpush
@@ -355,11 +464,10 @@
   class="terms-input sy-input"
   placeholder="2026-2027"
 >
-<div style="font-size:12px; color:#6b7280; margin-top:6px;">
-            Create one term at a time, then set start and end dates below.
-          </div>
 
-          <div style="height:14px;"></div>
+          
+<p class="term-helper">Create one term at a time, then set start and end dates below.</p>
+<div style="height:14px;"></div>
 
           <label style="display:block; font-weight:800; margin-bottom:6px;">Start Date (optional)</label>
           <input type="date" id="start_date_ui" class="terms-input"
@@ -403,6 +511,12 @@
           <input type="hidden" name="end_date_2" id="end_date_2" value="{{ old('end_date_2') }}">
           <input type="hidden" name="start_date_summer" id="start_date_summer" value="{{ old('start_date_summer') }}">
           <input type="hidden" name="end_date_summer" id="end_date_summer" value="{{ old('end_date_summer') }}">
+        </div>
+
+
+
+        
+
         </div>
       </div>
 
@@ -491,14 +605,20 @@
             </td>
             <td class="actions">
               @if((int)$t->is_active !== 1)
-                <form method="POST" action="{{ route('utilities.terms.active', $t->term_id) }}">
+                <form method="POST" action="{{ route('utilities.terms.active', $t->term_id) }}" style="display:inline;">
                   @csrf
                   <button class="btn btn-primary" type="submit">Set Active</button>
                 </form>
-              @else
-                {{-- active term: show status in the Active column only (no action button) --}}
-                <span style="color:#6b7280;">—</span>
               @endif
+
+              <button type="button"
+                      class="terms-btn-edit js-edit-term"
+                      data-term-id="{{ $t->term_id }}"
+                      data-school-year="{{ $t->school_year }}"
+                      data-semester="{{ $t->semester }}"
+                      data-start-date="{{ $t->start_date ?? '' }}"
+                      data-end-date="{{ $t->end_date ?? '' }}"
+                      data-is-active="{{ (int)$t->is_active }}">Edit</button>
             </td>
           </tr>
         @empty
@@ -509,4 +629,112 @@
   </div>
 
 </div>
+
+  {{-- EDIT MODAL (UI-only) --}}
+  <div id="termEditBackdrop" class="term-modal-backdrop" aria-hidden="true">
+    <div class="term-modal" role="dialog" aria-modal="true" aria-labelledby="termEditTitle">
+      <div class="term-modal-header">
+        <div>
+          <div id="termEditTitle" class="term-modal-title">Edit School Year / Term</div>
+          <div id="termEditSub" class="term-modal-sub">Fix typos here instead of editing the database manually.</div>
+        </div>
+        <button type="button" class="term-modal-x" id="termEditCloseBtn" aria-label="Close">×</button>
+      </div>
+
+      <form id="termEditForm" method="POST" action="">
+        @csrf
+        @method('PATCH')
+
+        <div class="term-modal-grid">
+          <div>
+            <label class="term-modal-label">School Year (YYYY-YYYY)</label>
+            <input type="text" name="school_year" id="termEditSchoolYear" class="terms-input" placeholder="2026-2027" required>
+          </div>
+
+          <div>
+            <label class="term-modal-label">Term</label>
+            <select name="semester" id="termEditSemester" class="terms-input" required>
+              <option value="1">First Semester</option>
+              <option value="2">Second Semester</option>
+              <option value="summer">Midyear</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="term-modal-label">Start Date (optional)</label>
+            <input type="date" name="start_date" id="termEditStartDate" class="terms-input">
+          </div>
+
+          <div>
+            <label class="term-modal-label">End Date (optional)</label>
+            <input type="date" name="end_date" id="termEditEndDate" class="terms-input">
+          </div>
+        </div>
+
+        <div class="term-modal-actions">
+          <div id="termEditActiveNote" class="term-modal-note" style="display:none;">
+            You are editing the <strong>ACTIVE</strong> term. Be careful with changes.
+          </div>
+          <div class="term-modal-buttons">
+            <button type="button" class="btn btn-outline-purple" id="termEditCancelBtn">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      // IMPORTANT: Utilities routes in this project are nested under the Admissions prefix
+      // (e.g. /admission/utilities/terms). Use the named index route to avoid hardcoding.
+      const baseUrl = "{{ route('utilities.terms.index') }}";
+      const backdrop = document.getElementById('termEditBackdrop');
+      const form = document.getElementById('termEditForm');
+
+      const inpSY = document.getElementById('termEditSchoolYear');
+      const selSem = document.getElementById('termEditSemester');
+      const inpSD = document.getElementById('termEditStartDate');
+      const inpED = document.getElementById('termEditEndDate');
+      const activeNote = document.getElementById('termEditActiveNote');
+
+      function openModal(btn){
+        const termId = btn.getAttribute('data-term-id');
+        form.action = baseUrl + "/" + termId;
+
+        inpSY.value = btn.getAttribute('data-school-year') || '';
+        selSem.value = btn.getAttribute('data-semester') || '1';
+        inpSD.value = btn.getAttribute('data-start-date') || '';
+        inpED.value = btn.getAttribute('data-end-date') || '';
+
+        const isActive = (btn.getAttribute('data-is-active') === '1');
+        activeNote.style.display = isActive ? 'block' : 'none';
+
+        backdrop.classList.add('show');
+        backdrop.setAttribute('aria-hidden', 'false');
+        setTimeout(() => inpSY.focus(), 0);
+      }
+
+      function closeModal(){
+        backdrop.classList.remove('show');
+        backdrop.setAttribute('aria-hidden', 'true');
+      }
+
+      document.querySelectorAll('.js-edit-term').forEach(btn => {
+        btn.addEventListener('click', () => openModal(btn));
+      });
+
+      document.getElementById('termEditCloseBtn').addEventListener('click', closeModal);
+      document.getElementById('termEditCancelBtn').addEventListener('click', closeModal);
+
+      backdrop.addEventListener('click', (e) => {
+        if (e.target === backdrop) closeModal();
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && backdrop.classList.contains('show')) closeModal();
+      });
+    })();
+  </script>
+
 @endsection

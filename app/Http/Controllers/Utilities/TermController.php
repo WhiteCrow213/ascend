@@ -114,6 +114,53 @@ class TermController extends Controller
         return back()->with('ok', 'School year / terms saved.');
     }
 
+
+    public function update(Request $request, int $termId)
+    {
+        $data = $request->validate([
+            'school_year' => ['required', 'regex:/^\d{4}-\d{4}$/'],
+            'semester'    => ['required', 'in:1,2,summer'],
+            'start_date'  => ['nullable', 'date'],
+            'end_date'    => ['nullable', 'date', 'after_or_equal:start_date'],
+        ]);
+
+        // Enforce consecutive school year (e.g. 2026-2027)
+        [$y1, $y2] = array_pad(explode('-', $data['school_year']), 2, null);
+        if (!$y1 || !$y2 || ((int) $y2) !== ((int) $y1) + 1) {
+            return back()
+                ->withErrors(['school_year' => 'School year must be consecutive (e.g. 2026-2027).'])
+                ->withInput();
+        }
+
+        // Prevent duplicates (same SY + semester, excluding current row)
+        $dup = DB::table('tbl_terms')
+            ->where('school_year', $data['school_year'])
+            ->where('semester', $data['semester'])
+            ->where('term_id', '!=', $termId)
+            ->exists();
+
+        if ($dup) {
+            return back()
+                ->withErrors(['semester' => 'This term already exists for the selected school year.'])
+                ->withInput();
+        }
+
+        $update = [
+            'school_year' => $data['school_year'],
+            'semester'    => $data['semester'],
+            'start_date'  => $data['start_date'] ?? null,
+            'end_date'    => $data['end_date'] ?? null,
+        ];
+
+        if (Schema::hasColumn('tbl_terms', 'updated_at')) {
+            $update['updated_at'] = now();
+        }
+
+        DB::table('tbl_terms')->where('term_id', $termId)->update($update);
+
+        return back()->with('ok', 'Term updated.');
+    }
+
     public function setActive(int $termId)
     {
         DB::transaction(function () use ($termId) {
