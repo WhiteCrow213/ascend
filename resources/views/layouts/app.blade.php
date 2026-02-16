@@ -128,7 +128,7 @@
             <a href="#"><span class="iconbox">🏛️</span><span>Dean</span></a>
             <a href="#"><span class="iconbox">🧑‍🏫</span><span>Faculty</span></a>
             <a href="#"><span class="iconbox">👩‍🎓</span><span>Students</span></a>
-            <a href="#"><span class="iconbox">🛠️</span><span>Utilities</span></a>
+            <a href="{{ route('utilities.terms.index') }}"><span class="iconbox">🛠️</span><span>Utilities</span></a>
             <a href="#"><span class="iconbox">⚙️</span><span>Settings</span></a>
         </nav>
     </aside>

@@ -82,15 +82,13 @@
       </div>
     </a>
 
-    {{-- ENROLLMENT (disabled for now) --}}
-    <div class="adm-card adm-disabled">
-      <div class="adm-icon" data-icon="🎓"></div>
-      <div>
-        <h2 class="adm-title">Enrollment</h2>
-        <p class="adm-desc">Subjects, assessment, COR</p>
-      </div>
-    </div>
-
+{{-- ENROLLMENT --}}
+<a href="{{ route('admission.enrollment.index') }}" class="adm-card">
+  <div class="adm-icon" data-icon="🎓"></div>
+  <div>
+    <h2 class="adm-title">Enrollment</h2>
+    <p class="adm-desc">Subjects, assessment, COR</p>
   </div>
-</div>
+</a>
+
 @endsection

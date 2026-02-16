@@ -79,6 +79,8 @@ class PreRegistrationController extends Controller
     }
 
     // ✅ STORE PRE-REGISTRATION
+    
+    // ✅ STORE PRE-REGISTRATION
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -90,6 +92,7 @@ class PreRegistrationController extends Controller
             'ContactNo'   => ['required', 'string', 'max:20'],
             'email'       => ['required', 'email', 'max:50'],
             'Birthdate'   => ['required', 'date'],
+            'place_of_birth' => ['nullable', 'string', 'max:255'],
             'Gender'      => ['required', 'string', 'max:10'],
             'Citizenship' => ['required', 'string', 'max:20'],
             'CivilStatus' => ['required', 'string', 'max:20'],
@@ -159,37 +162,30 @@ class PreRegistrationController extends Controller
             'profile_photo_cropped' => ['nullable', 'string'],
         ]);
 
-        
-
-        
         // ✅ IMPORTANT: guardians[] is NOT a column in tbl_student_info
-        // Remove it before creating the student record.
         $studentData = $validated;
         unset($studentData['guardians']);
+
+        // ✅ Step 5 (photo) comes in as base64 data URL
         $photoDataUrl = $studentData['profile_photo_cropped'] ?? null;
         unset($studentData['profile_photo_cropped']);
 
-$student = DB::transaction(function () use ($studentData, $validated) {
-            $student = StudentInfo::create(
-                array_merge($studentData, [
-                    'application_status' => 'pending',
-                ])
-                
-        );
-
-        
+        $student = DB::transaction(function () use ($studentData, $validated, $photoDataUrl) {
+            // Create student record (force status = pending)
+            $student = StudentInfo::create(array_merge($studentData, [
+                'application_status' => 'pending',
+            ]));
 
             // =========================
             // STEP 5 — Save profile photo (cropped square)
             // =========================
             if (!empty($photoDataUrl) && str_starts_with($photoDataUrl, 'data:image')) {
-                // Expected format: data:image/jpeg;base64,....
                 [$meta, $content] = explode(',', $photoDataUrl, 2);
                 $ext = str_contains($meta, 'image/png') ? 'png' : 'jpg';
 
                 $bin = base64_decode($content);
                 if ($bin !== false) {
-                    $dir = 'profile_photos/' . now()->format('Y/m');
+                    $dir  = 'profile_photos/' . now()->format('Y/m');
                     $name = 'prereg_' . $student->studID . '_' . Str::random(10) . '.' . $ext;
                     $path = $dir . '/' . $name;
 
@@ -199,74 +195,191 @@ $student = DB::transaction(function () use ($studentData, $validated) {
                 }
             }
 
+            // Generate applicant number
             $appNo = 'APP-' . now()->format('Y') . '-' . str_pad($student->studID, 6, '0', STR_PAD_LEFT);
             $student->ApplicantNum = $appNo;
-            $student->stud_number = $appNo;
+            $student->stud_number  = $appNo;
             $student->save();
 
-            
-// =========================
-// STEP 2 — Save guardians (Father, Mother, Emergency Contact)
-// Array-based: guardians[0], guardians[1], guardians[2]
-// =========================
+            // =========================
+            // STEP 2 — Save guardians (Father, Mother, Emergency Contact)
+            // =========================
+            DB::table('tbl_guardian')->where('studID', $student->studID)->delete();
 
-// Prevent duplicates if the form is resubmitted
-DB::table('tbl_guardian')->where('studID', $student->studID)->delete();
-
-foreach ($validated['guardians'] as $g) {
-    DB::table('tbl_guardian')->insert([
-        'studID'            => $student->studID,
-        'guardFNAME'        => $g['guardFNAME'],
-        'guardMname'        => $g['guardMname'] ?? null,
-        'guardLname'        => $g['guardLname'],
-        'contact_number'    => $g['contact_number'],
-        'relationship'      => $g['relationship'],
-        'occupation'        => $g['occupation'] ?? null,
-        'address'           => $g['address'] ?? null,
-        'annual_income'     => $g['annual_income'] ?? null,
-        'highest_education' => $g['highest_education'] ?? null,
-    ]);
-}
-
-
-
+            foreach ($validated['guardians'] as $g) {
+                DB::table('tbl_guardian')->insert([
+                    'studID'            => $student->studID,
+                    'guardFNAME'        => $g['guardFNAME'],
+                    'guardMname'        => $g['guardMname'] ?? null,
+                    'guardLname'        => $g['guardLname'],
+                    'contact_number'    => $g['contact_number'],
+                    'relationship'      => $g['relationship'],
+                    'occupation'        => $g['occupation'] ?? null,
+                    'address'           => $g['address'] ?? null,
+                    'annual_income'     => $g['annual_income'] ?? null,
+                    'highest_education' => $g['highest_education'] ?? null,
+                ]);
+            }
 
             return $student;
         });
 
-        return redirect()->route('admission.prereg.success', ['studID' => $student->studID]);}
-
-    // ✅ SUCCESS page (after submission)
-    public function success($studID)
+        return redirect()->route('admission.prereg.success', ['studID' => $student->studID]);
+    }
+public function success($studID)
     {
         $student = StudentInfo::where('studID', $studID)->firstOrFail();
         return view('admission.pre_registration.success', compact('student'));
     }
 
+    
     // ✅ PDF (view in browser or download)
+    /**
+     * =========================
+     * VIEWER (HTML, for modal iframe)
+     * URL: GET /admission/prereg/{studID}/viewer
+     * =========================
+     */
+    public function viewer($studID)
+    {
+        $student = StudentInfo::where('studID', $studID)->firstOrFail();
+
+        // -------- Address resolution (PSGC -> names)
+        $regionName   = !empty($student->region_psgc)
+            ? Region::where('psgc_code', $student->region_psgc)->value('name')
+            : null;
+
+        $provinceName = !empty($student->province_psgc)
+            ? Province::where('psgc_code', $student->province_psgc)->value('name')
+            : null;
+
+        $citymunName  = !empty($student->citymun_psgc)
+            ? CityMunicipality::where('psgc_code', $student->citymun_psgc)->value('name')
+            : null;
+
+        $brgyName     = !empty($student->brgy_psgc)
+            ? Barangay::where('psgc_code', $student->brgy_psgc)->value('name')
+            : null;
+
+        $presentAddress = trim(implode(', ', array_filter([
+            $student->address_line ?? null,
+            $brgyName,
+            $citymunName,
+            $provinceName,
+            $regionName,
+        ])));
+
+        // -------- Guardians (Father / Mother)
+        $guardians = DB::table('tbl_guardian')
+            ->where('studID', $student->studID)
+            ->get();
+
+        $father = $guardians->firstWhere('relationship', 'Father');
+        $mother = $guardians->firstWhere('relationship', 'Mother');
+
+        $fatherName = $father
+            ? trim(implode(' ', array_filter([$father->guardFNAME, $father->guardMname, $father->guardLname])))
+            : null;
+
+        $motherName = $mother
+            ? trim(implode(' ', array_filter([$mother->guardFNAME, $mother->guardMname, $mother->guardLname])))
+            : null;
+
+        // -------- Photo (base64 so it shows in browser + dompdf-style layouts)
+        $photoDataUri = null;
+        if (!empty($student->profile_photo_path)) {
+            $fullPath = storage_path('app/public/' . $student->profile_photo_path);
+            if (file_exists($fullPath)) {
+                $mime = mime_content_type($fullPath) ?: 'image/jpeg';
+                $data = base64_encode(file_get_contents($fullPath));
+                if (!empty($data)) {
+                    $photoDataUri = "data:{$mime};base64,{$data}";
+                }
+            }
+        }
+
+        return view('admission.pre_registration.prereg_viewer', [
+            'student'        => $student,
+            'photoDataUri'   => $photoDataUri,
+            'presentAddress' => $presentAddress,
+            'fatherName'     => $fatherName,
+            'motherName'     => $motherName,
+        ]);
+    }
+
+
     public function pdf($studID)
     {
         $student = StudentInfo::where('studID', $studID)->firstOrFail();
 
-        // Locate photo file for DomPDF (use file:// path for best reliability)
-        $photoFilePath = null;
+        // =========================
+        // Address display (PSGC -> Names)
+        // =========================
+        $regionName   = null;
+        $provinceName = null;
+        $citymunName  = null;
+        $brgyName     = null;
+
+        if (!empty($student->region_psgc)) {
+            $regionName = Region::where('psgc_code', $student->region_psgc)->value('name');
+        }
+        if (!empty($student->province_psgc)) {
+            $provinceName = Province::where('psgc_code', $student->province_psgc)->value('name');
+        }
+        if (!empty($student->citymun_psgc)) {
+            $citymunName = CityMunicipality::where('psgc_code', $student->citymun_psgc)->value('name');
+        }
+        if (!empty($student->brgy_psgc)) {
+            $brgyName = Barangay::where('psgc_code', $student->brgy_psgc)->value('name');
+        }
+
+        $presentAddress = trim(implode(', ', array_filter([
+            $student->address_line ?? null,
+            $brgyName,
+            $citymunName,
+            $provinceName,
+            $regionName,
+        ])));
+
+        // =========================
+        // Guardians (Father/Mother display)
+        // =========================
+        $guardians = DB::table('tbl_guardian')
+            ->where('studID', $student->studID)
+            ->get();
+
+        $father = $guardians->firstWhere('relationship', 'Father');
+        $mother = $guardians->firstWhere('relationship', 'Mother');
+
+        $fatherName = $father ? trim(implode(' ', array_filter([$father->guardFNAME, $father->guardMname, $father->guardLname]))) : null;
+        $motherName = $mother ? trim(implode(' ', array_filter([$mother->guardFNAME, $mother->guardMname, $mother->guardLname]))) : null;
+
+        // =========================
+        // Photo: embed as base64 Data URI for DomPDF reliability
+        // =========================
+        $photoDataUri = null;
         if (!empty($student->profile_photo_path)) {
             $fullPath = storage_path('app/public/' . $student->profile_photo_path);
             if (file_exists($fullPath)) {
-                $photoFilePath = $fullPath;
+                $mime = mime_content_type($fullPath) ?: 'image/jpeg';
+                $data = base64_encode(file_get_contents($fullPath));
+                if (!empty($data)) {
+                    $photoDataUri = "data:{$mime};base64,{$data}";
+                }
             }
         }
 
         $pdf = Pdf::loadView('admission.pre_registration.prereg_pdf', [
-            'student' => $student,
-            'photoFilePath' => $photoFilePath,
-        ])->setPaper('A4', 'portrait')->setOptions(['isRemoteEnabled' => true]);
+            'student'        => $student,
+            'photoDataUri'   => $photoDataUri,
+            'presentAddress' => $presentAddress,
+            'fatherName'     => $fatherName,
+            'motherName'     => $motherName,
+        ])->setPaper('A4', 'portrait');
 
-        // stream = opens in browser (best for mobile)
         return $pdf->stream("prereg_{$student->studID}.pdf");
-
-        // or download:
         // return $pdf->download("prereg_{$student->studID}.pdf");
     }
+
 
 }

@@ -61,7 +61,7 @@
     </div>
 
     {{-- Use URL so it never breaks if route names change --}}
-    <form method="POST" action="{{ route('admission.prereg.store') }}">
+    <form method="POST" action="{{ route('admission.prereg.manual.store') }}">
     @csrf
 
      {{-- ================= STEP 1 ================= --}}
@@ -101,10 +101,18 @@
       <input name="email" type="email" value="{{ old('email') }}" required>
     </div>
 
-    {{-- ROW 3 --}}
+    {{-- ROW 3 (Birthdate + Place of Birth + Gender) --}}
     <div class="field">
       <label>Birthdate</label>
       <input name="Birthdate" type="date" value="{{ old('Birthdate') }}" required>
+    </div>
+
+    <div class="field">
+      <label>Place of Birth</label>
+      <input name="place_of_birth"
+             value="{{ old('place_of_birth', $student->place_of_birth ?? '') }}"
+             class="sentence"
+             placeholder="e.g., Don Carlos, Bukidnon">
     </div>
 
     <div class="field">
@@ -116,14 +124,12 @@
       </select>
     </div>
 
+    {{-- ROW 4 (Citizenship + Civil Status + Religion) --}}
     <div class="field">
       <label>Citizenship</label>
       <input name="Citizenship" value="{{ old('Citizenship','Filipino') }}" required>
     </div>
-  </div>
 
-  {{-- ADDITIONAL PERSONAL DETAILS (MOVED ABOVE ADDRESS) --}}
-  <div class="grid3" style="margin-top:18px;">
     <div class="field">
       <label>Civil Status</label>
       <select name="CivilStatus" required>
@@ -139,11 +145,7 @@
       <input name="Religion" value="{{ old('Religion') }}" required class="sentence">
     </div>
 
-    <div class="field">
-      <label>Blood Type</label>
-      <input name="Bloodtype" value="{{ old('Bloodtype') }}">
-    </div>
-
+    {{-- ROW 5 (Height + Weight + Blood Type) --}}
     <div class="field">
       <label>Height (cm)</label>
       <input name="Height" value="{{ old('Height') }}">
@@ -152,6 +154,11 @@
     <div class="field">
       <label>Weight (kg)</label>
       <input name="Weight" value="{{ old('Weight') }}">
+    </div>
+
+    <div class="field">
+      <label>Blood Type</label>
+      <input name="Bloodtype" value="{{ old('Bloodtype') }}">
     </div>
   </div>
 

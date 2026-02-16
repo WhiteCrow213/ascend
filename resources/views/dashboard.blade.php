@@ -74,7 +74,7 @@
         </a>
 
         {{-- UTILITIES --}}
-        <a class="card" href="#">
+        <a class="card" href="{{ route('utilities.terms.index') }}">
             <div class="card__title">Utilities</div>
             <div class="card__desc">Import/export, tools, backups</div>
         </a>
