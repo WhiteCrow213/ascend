@@ -8,23 +8,9 @@ use App\Http\Controllers\GeoController;
 use App\Http\Controllers\Admissions\EnrollmentController;
 use App\Http\Controllers\Utilities\TermController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Students\StudentProfileController;
 
 
-
-/*
-|--------------------------------------------------------------------------
-| Web Routes (ASCEND)
-|--------------------------------------------------------------------------
-| This restores the named routes your layout expects (dashboard, admission.index,
-| admission.prereg.grid) and keeps the Pre-Registration workflow working.
-|--------------------------------------------------------------------------
-*/
-
-// ===============================
-// BASIC PAGES (restores broken links)
-// ===============================
-
-// Login page (if you already have resources/views/login.blade.php)
 Route::get('/login', function () {
     if (session()->has('ascend_user_id')) {
         return redirect()->route('dashboard');
@@ -92,7 +78,10 @@ Route::get('/enrollment/workspace/{enrollmentId}', [EnrollmentController::class,
 
 
 
-
+Route::middleware(['web'])->group(function () {
+    Route::get('/students/{studentNo}', [StudentProfileController::class, 'show'])
+        ->name('students.profile');
+});
 
     /*
     |--------------------------------------------------------------------------
@@ -139,10 +128,52 @@ Route::get('/pre-registration/success/{studID}', [PreRegistrationController::cla
 // ===============================
 // UTILITIES MODULE
 // ===============================
+
+    // Utilities Hub
+Route::get('/utilities', function () {
+    return view('utilities.index');
+})->name('utilities.index');
+
 Route::prefix('utilities')->group(function () {
     Route::get('/terms', [TermController::class, 'index'])->name('utilities.terms.index');
     Route::post('/terms', [TermController::class, 'store'])->name('utilities.terms.store');
     Route::patch('/terms/{termId}', [TermController::class, 'update'])->name('utilities.terms.update');
     Route::post('/terms/{termId}/active', [TermController::class, 'setActive'])->name('utilities.terms.active');
+
+    Route::get('/master-data', function () {
+    return view('utilities.master-data');
+})->name('utilities.master-data');
+
+// Programs
+Route::prefix('programs')->name('utilities.programs.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Utilities\ProgramsController::class, 'index'])->name('index');
+    Route::post('/store', [App\Http\Controllers\Utilities\ProgramsController::class, 'store'])->name('store');
+    Route::post('/update/{id}', [App\Http\Controllers\Utilities\ProgramsController::class, 'update'])->name('update');
+});
+
+
+
+
+
+
+// Curriculum
+Route::prefix('curriculum')->name('utilities.curriculum.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Utilities\CurriculumController::class, 'index'])->name('index');
+    Route::post('/store', [App\Http\Controllers\Utilities\CurriculumController::class, 'store'])->name('store');
+    Route::post('/update/{id}', [App\Http\Controllers\Utilities\CurriculumController::class, 'update'])->name('update');
+});
+
+
+// Curriculum Map (assign subjects to curriculum)
+Route::get('/curriculum-map', [App\Http\Controllers\Utilities\CurriculumController::class, 'mapIndex'])->name('utilities.curriculum.map.index');
+Route::post('/curriculum-map/store', [App\Http\Controllers\Utilities\CurriculumController::class, 'mapStore'])->name('utilities.curriculum.map.store');
+Route::post('/curriculum-map/{CurrMapID}/delete', [App\Http\Controllers\Utilities\CurriculumController::class, 'mapDelete'])->name('utilities.curriculum.map.delete');
+
+// Subjects
+Route::prefix('subjects')->name('utilities.subjects.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Utilities\SubjectsController::class, 'index'])->name('index');
+    Route::post('/store', [App\Http\Controllers\Utilities\SubjectsController::class, 'store'])->name('store');
+    Route::post('/update/{id}', [App\Http\Controllers\Utilities\SubjectsController::class, 'update'])->name('update');
+});
 });
 

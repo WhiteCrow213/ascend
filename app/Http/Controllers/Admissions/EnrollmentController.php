@@ -80,7 +80,7 @@ class EnrollmentController extends Controller
             abort(404);
         }
 
-        return view('admission.enrollment.show', compact('enrollment'));
+        return view('admission.enrollment.EnrollmentWorkspace', compact('enrollment'));
     }
 
     // ✅ Start Enrollment (creates harmless draft) + opens Enrollment Workspace
