@@ -202,6 +202,23 @@ class PreRegistrationController extends Controller
             $student->save();
 
             // =========================
+            // ALSO: Mirror prereg workflow record into tbl_prereg_applicants
+            // (Transitional, stability-first: keeps existing StudentInfo flow intact while we migrate prereg to its own table.)
+            // =========================
+            DB::table('tbl_prereg_applicants')->updateOrInsert(
+                ['ApplicantNum' => $student->ApplicantNum],
+                [
+                    'application_status'  => 'pending',
+                    'applicant_type'      => $student->applicant_type,
+                    'FirstProgramChoice'  => $student->FirstProgramChoice,
+                    'SecondProgramChoice' => $student->SecondProgramChoice,
+                    'studID'              => $student->studID,
+                    'updated_at'          => now(),
+                    'created_at'          => now(),
+                ]
+            );
+
+            // =========================
             // STEP 2 — Save guardians (Father, Mother, Emergency Contact)
             // =========================
             DB::table('tbl_guardian')->where('studID', $student->studID)->delete();

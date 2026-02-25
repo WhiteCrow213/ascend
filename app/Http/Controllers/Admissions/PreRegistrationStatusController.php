@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admissions;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\StudentInfo;
+use Illuminate\Support\Facades\DB;
 
 class PreRegistrationStatusController extends Controller
 {
@@ -23,6 +24,12 @@ class PreRegistrationStatusController extends Controller
         // 2. Update the applicant record
         StudentInfo::where('studID', $studID)->update([
             'application_status' => $request->application_status,
+        ]);
+
+        // 2b. Keep prereg mirror table in sync (tbl_prereg_applicants)
+        DB::table('tbl_prereg_applicants')->where('studID', $studID)->update([
+            'application_status' => $request->application_status,
+            'updated_at' => now(),
         ]);
 
         // 3. Go back to inbox
