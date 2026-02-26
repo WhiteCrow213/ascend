@@ -16,14 +16,15 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class PreRegistrationController extends Controller
 {
-    // ✅ GRID / INBOX
+    // ✅ GRID / INBOX (now reads from tbl_prereg_applicants)
     public function index(Request $request)
     {
         $search = trim((string) $request->query('q', ''));
 
-        $query = StudentInfo::query();
+        $query = DB::table('tbl_prereg_applicants')
+            // Keep Blade compatibility: use prereg_id as "studID" for routes/modals
+            ->selectRaw('tbl_prereg_applicants.*, prereg_id as studID');
 
-        // SEARCH FILTER
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
                 $q->where('ApplicantNum', 'like', "%{$search}%")
@@ -33,24 +34,18 @@ class PreRegistrationController extends Controller
             });
         }
 
-        // ORDER: newest first
         $applicants = $query
             ->orderByDesc('created_at')
             ->paginate(10)
             ->appends($request->query());
 
-        return view(
-            'admission.pre_registration.pre-reg_grid',
-            compact('applicants', 'search')
-        );
+        return view('admission.pre_registration.pre-reg_grid', compact('applicants', 'search'));
     }
 
     // ✅ MANUAL PRE-REGISTRATION FORM
     public function create()
     {
-        // Load regions for the first dropdown
         $regions = Region::orderBy('name')->get(['psgc_code', 'name']);
-
         return view('admission.pre_registration.manual', compact('regions'));
     }
 
@@ -78,9 +73,7 @@ class PreRegistrationController extends Controller
             ->get(['psgc_code', 'name']);
     }
 
-    // ✅ STORE PRE-REGISTRATION
-    
-    // ✅ STORE PRE-REGISTRATION
+    // ✅ STORE PRE-REGISTRATION (writes ONLY to tbl_prereg_applicants)
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -99,44 +92,44 @@ class PreRegistrationController extends Controller
             'Religion'    => ['required', 'string', 'max:50'],
 
             'Bloodtype'   => ['nullable', 'string', 'max:10'],
-            'Height'      => ['nullable', 'string', 'max:10'],
-            'Weight'      => ['nullable', 'string', 'max:10'],
+            'Height'      => ['nullable', 'numeric', 'min:0'],
+            'Weight'      => ['nullable', 'numeric', 'min:0'],
 
-            
-// ✅ Step 2 (Parent / Guardian) — array-based (3 rows)
-'guardians' => ['required', 'array', 'size:3'],
+            // ✅ Step 2 (Parent / Guardian) — array-based (3 rows)
+            'guardians' => ['required', 'array', 'size:3'],
 
-// Father (index 0)
-'guardians.0.relationship'      => ['required', 'in:Father'],
-'guardians.0.guardFNAME'        => ['required', 'string', 'max:50'],
-'guardians.0.guardMname'        => ['nullable', 'string', 'max:50'],
-'guardians.0.guardLname'        => ['required', 'string', 'max:50'],
-'guardians.0.contact_number'    => ['required', 'string', 'max:20'],
-'guardians.0.occupation'        => ['nullable', 'string', 'max:100'],
-'guardians.0.address'           => ['nullable', 'string', 'max:255'],
-'guardians.0.annual_income'     => ['nullable', 'numeric', 'min:0'],
-'guardians.0.highest_education' => ['nullable', 'string', 'max:100'],
+            // Father (index 0)
+            'guardians.0.relationship'      => ['required', 'in:Father'],
+            'guardians.0.guardFNAME'        => ['required', 'string', 'max:50'],
+            'guardians.0.guardMname'        => ['nullable', 'string', 'max:50'],
+            'guardians.0.guardLname'        => ['required', 'string', 'max:50'],
+            'guardians.0.contact_number'    => ['required', 'string', 'max:20'],
+            'guardians.0.occupation'        => ['nullable', 'string', 'max:100'],
+            'guardians.0.address'           => ['nullable', 'string', 'max:255'],
+            'guardians.0.annual_income'     => ['nullable', 'numeric', 'min:0'],
+            'guardians.0.highest_education' => ['nullable', 'string', 'max:100'],
 
-// Mother (index 1)
-'guardians.1.relationship'      => ['required', 'in:Mother'],
-'guardians.1.guardFNAME'        => ['required', 'string', 'max:50'],
-'guardians.1.guardMname'        => ['nullable', 'string', 'max:50'],
-'guardians.1.guardLname'        => ['required', 'string', 'max:50'],
-'guardians.1.contact_number'    => ['required', 'string', 'max:20'],
-'guardians.1.occupation'        => ['nullable', 'string', 'max:100'],
-'guardians.1.address'           => ['nullable', 'string', 'max:255'],
-'guardians.1.annual_income'     => ['nullable', 'numeric', 'min:0'],
-'guardians.1.highest_education' => ['nullable', 'string', 'max:100'],
+            // Mother (index 1)
+            'guardians.1.relationship'      => ['required', 'in:Mother'],
+            'guardians.1.guardFNAME'        => ['required', 'string', 'max:50'],
+            'guardians.1.guardMname'        => ['nullable', 'string', 'max:50'],
+            'guardians.1.guardLname'        => ['required', 'string', 'max:50'],
+            'guardians.1.contact_number'    => ['required', 'string', 'max:20'],
+            'guardians.1.occupation'        => ['nullable', 'string', 'max:100'],
+            'guardians.1.address'           => ['nullable', 'string', 'max:255'],
+            'guardians.1.annual_income'     => ['nullable', 'numeric', 'min:0'],
+            'guardians.1.highest_education' => ['nullable', 'string', 'max:100'],
 
-// Emergency Contact (index 2)
-'guardians.2.relationship'      => ['required', 'string', 'max:50'],
-'guardians.2.guardFNAME'        => ['required', 'string', 'max:50'],
-'guardians.2.guardMname'        => ['nullable', 'string', 'max:50'],
-'guardians.2.guardLname'        => ['required', 'string', 'max:50'],
-'guardians.2.contact_number'    => ['required', 'string', 'max:20'],
-'guardians.2.address'           => ['nullable', 'string', 'max:255'],
+            // Emergency Contact (index 2)
+            'guardians.2.relationship'      => ['required', 'string', 'max:50'],
+            'guardians.2.guardFNAME'        => ['required', 'string', 'max:50'],
+            'guardians.2.guardMname'        => ['nullable', 'string', 'max:50'],
+            'guardians.2.guardLname'        => ['required', 'string', 'max:50'],
+            'guardians.2.contact_number'    => ['required', 'string', 'max:20'],
+            'guardians.2.address'           => ['nullable', 'string', 'max:255'],
 
-'PrimarySchool'           => ['required', 'string', 'max:100'],
+            // Step 3 (Academic)
+            'PrimarySchool'           => ['required', 'string', 'max:100'],
             'PrimarySchool_Address'   => ['required', 'string', 'max:100'],
             'YearGradPrimary'         => ['required', 'string', 'max:4'],
 
@@ -146,39 +139,53 @@ class PreRegistrationController extends Controller
 
             'LastSchoolAttended'      => ['required', 'string', 'max:100'],
 
+            // Step 4 (Programs + Applicant type)
             'FirstProgramChoice'      => ['required', 'string', 'max:150'],
             'SecondProgramChoice'     => ['required', 'string', 'max:150', 'different:FirstProgramChoice'],
+            'applicant_type'          => ['required', 'in:Freshman,Transferee'],
 
-            // ✅ Address dropdown PSGC codes (add these fields in your manual.blade.php form)
+            // Address PSGC codes
             'region_psgc'   => ['required', 'string', 'max:10'],
             'province_psgc' => ['nullable', 'string', 'max:10'], // NCR may be NULL
             'citymun_psgc'  => ['required', 'string', 'max:10'],
             'brgy_psgc'     => ['required', 'string', 'max:10'],
 
-            // ✅ Applicant Type (Step 4)
-            'applicant_type' => ['required', 'in:Freshman,Transferee'],
-
-            // ✅ Step 5 (optional) - cropped photo data URL (base64)
+            // Step 5 photo (optional) - cropped photo data URL (base64)
             'profile_photo_cropped' => ['nullable', 'string'],
         ]);
 
-        // ✅ IMPORTANT: guardians[] is NOT a column in tbl_student_info
-        $studentData = $validated;
-        unset($studentData['guardians']);
+        $photoDataUrl = $validated['profile_photo_cropped'] ?? null;
+        unset($validated['profile_photo_cropped']);
 
-        // ✅ Step 5 (photo) comes in as base64 data URL
-        $photoDataUrl = $studentData['profile_photo_cropped'] ?? null;
-        unset($studentData['profile_photo_cropped']);
+        // guardians are stored in tbl_guardian, not in prereg table directly
+        $guardians = $validated['guardians'];
+        unset($validated['guardians']);
 
-        $student = DB::transaction(function () use ($studentData, $validated, $photoDataUrl) {
-            // Create student record (force status = pending)
-            $student = StudentInfo::create(array_merge($studentData, [
-                'application_status' => 'pending',
-            ]));
+        $preregId = DB::transaction(function () use ($validated, $guardians, $photoDataUrl) {
 
-            // =========================
-            // STEP 5 — Save profile photo (cropped square)
-            // =========================
+            // ApplicantNum is NOT NULL + UNIQUE, so create a temporary one first, then replace after we get prereg_id.
+            $tmpApplicantNum = 'TMP-' . strtoupper(Str::random(12));
+
+            $insert = array_merge($validated, [
+                'ApplicantNum'        => $tmpApplicantNum,
+                'application_status'  => 'pending',
+                'created_at'          => now(),
+                'updated_at'          => now(),
+            ]);
+
+            $preregId = DB::table('tbl_prereg_applicants')->insertGetId($insert, 'prereg_id');
+
+            // Build final applicant number based on prereg_id
+            $appNo = 'APP-' . now()->format('Y') . '-' . str_pad((string) $preregId, 6, '0', STR_PAD_LEFT);
+
+            DB::table('tbl_prereg_applicants')
+                ->where('prereg_id', $preregId)
+                ->update([
+                    'ApplicantNum' => $appNo,
+                    'updated_at'   => now(),
+                ]);
+
+            // Save profile photo if provided
             if (!empty($photoDataUrl) && str_starts_with($photoDataUrl, 'data:image')) {
                 [$meta, $content] = explode(',', $photoDataUrl, 2);
                 $ext = str_contains($meta, 'image/png') ? 'png' : 'jpg';
@@ -186,46 +193,27 @@ class PreRegistrationController extends Controller
                 $bin = base64_decode($content);
                 if ($bin !== false) {
                     $dir  = 'profile_photos/' . now()->format('Y/m');
-                    $name = 'prereg_' . $student->studID . '_' . Str::random(10) . '.' . $ext;
+                    $name = 'prereg_' . $preregId . '_' . Str::random(10) . '.' . $ext;
                     $path = $dir . '/' . $name;
 
                     Storage::disk('public')->put($path, $bin);
-                    $student->profile_photo_path = $path;
-                    $student->save();
+
+                    DB::table('tbl_prereg_applicants')
+                        ->where('prereg_id', $preregId)
+                        ->update([
+                            'profile_photo_path' => $path,
+                            'updated_at'         => now(),
+                        ]);
                 }
             }
 
-            // Generate applicant number
-            $appNo = 'APP-' . now()->format('Y') . '-' . str_pad($student->studID, 6, '0', STR_PAD_LEFT);
-            $student->ApplicantNum = $appNo;
-            $student->stud_number  = $appNo;
-            $student->save();
+            // Save guardians linked to prereg_id (studID is NULL at prereg stage)
+            DB::table('tbl_guardian')->where('prereg_id', $preregId)->delete();
 
-            // =========================
-            // ALSO: Mirror prereg workflow record into tbl_prereg_applicants
-            // (Transitional, stability-first: keeps existing StudentInfo flow intact while we migrate prereg to its own table.)
-            // =========================
-            DB::table('tbl_prereg_applicants')->updateOrInsert(
-                ['ApplicantNum' => $student->ApplicantNum],
-                [
-                    'application_status'  => 'pending',
-                    'applicant_type'      => $student->applicant_type,
-                    'FirstProgramChoice'  => $student->FirstProgramChoice,
-                    'SecondProgramChoice' => $student->SecondProgramChoice,
-                    'studID'              => $student->studID,
-                    'updated_at'          => now(),
-                    'created_at'          => now(),
-                ]
-            );
-
-            // =========================
-            // STEP 2 — Save guardians (Father, Mother, Emergency Contact)
-            // =========================
-            DB::table('tbl_guardian')->where('studID', $student->studID)->delete();
-
-            foreach ($validated['guardians'] as $g) {
+            foreach ($guardians as $g) {
                 DB::table('tbl_guardian')->insert([
-                    'studID'            => $student->studID,
+                    'studID'            => null,
+                    'prereg_id'         => $preregId,
                     'guardFNAME'        => $g['guardFNAME'],
                     'guardMname'        => $g['guardMname'] ?? null,
                     'guardLname'        => $g['guardLname'],
@@ -238,28 +226,45 @@ class PreRegistrationController extends Controller
                 ]);
             }
 
-            return $student;
+            return $preregId;
         });
 
-        return redirect()->route('admission.prereg.success', ['studID' => $student->studID]);
+        // Keep route compatibility: pass prereg_id as "studID" param
+        return redirect()->route('admission.prereg.success', ['studID' => $preregId]);
     }
-public function success($studID)
+
+    // ✅ Success page (now reads from prereg; $studID param carries prereg_id for route compatibility)
+    public function success($studID)
     {
-        $student = StudentInfo::where('studID', $studID)->firstOrFail();
+        $preregId = (int) $studID;
+
+        $student = DB::table('tbl_prereg_applicants')
+            ->selectRaw('tbl_prereg_applicants.*, prereg_id as studID')
+            ->where('prereg_id', $preregId)
+            ->first();
+
+        abort_if(!$student, 404);
+
         return view('admission.pre_registration.success', compact('student'));
     }
 
-    
-    // ✅ PDF (view in browser or download)
     /**
      * =========================
      * VIEWER (HTML, for modal iframe)
      * URL: GET /admission/prereg/{studID}/viewer
+     * NOTE: {studID} is prereg_id for prereg stage (compat).
      * =========================
      */
     public function viewer($studID)
     {
-        $student = StudentInfo::where('studID', $studID)->firstOrFail();
+        $preregId = (int) $studID;
+
+        $student = DB::table('tbl_prereg_applicants')
+            ->selectRaw('tbl_prereg_applicants.*, prereg_id as studID')
+            ->where('prereg_id', $preregId)
+            ->first();
+
+        abort_if(!$student, 404);
 
         // -------- Address resolution (PSGC -> names)
         $regionName   = !empty($student->region_psgc)
@@ -288,7 +293,7 @@ public function success($studID)
 
         // -------- Guardians (Father / Mother)
         $guardians = DB::table('tbl_guardian')
-            ->where('studID', $student->studID)
+            ->where('prereg_id', $preregId)
             ->get();
 
         $father = $guardians->firstWhere('relationship', 'Father');
@@ -302,7 +307,7 @@ public function success($studID)
             ? trim(implode(' ', array_filter([$mother->guardFNAME, $mother->guardMname, $mother->guardLname])))
             : null;
 
-        // -------- Photo (base64 so it shows in browser + dompdf-style layouts)
+        // -------- Photo
         $photoDataUri = null;
         if (!empty($student->profile_photo_path)) {
             $fullPath = storage_path('app/public/' . $student->profile_photo_path);
@@ -324,31 +329,33 @@ public function success($studID)
         ]);
     }
 
-
     public function pdf($studID)
     {
-        $student = StudentInfo::where('studID', $studID)->firstOrFail();
+        $preregId = (int) $studID;
 
-        // =========================
-        // Address display (PSGC -> Names)
-        // =========================
-        $regionName   = null;
-        $provinceName = null;
-        $citymunName  = null;
-        $brgyName     = null;
+        $student = DB::table('tbl_prereg_applicants')
+            ->selectRaw('tbl_prereg_applicants.*, prereg_id as studID')
+            ->where('prereg_id', $preregId)
+            ->first();
 
-        if (!empty($student->region_psgc)) {
-            $regionName = Region::where('psgc_code', $student->region_psgc)->value('name');
-        }
-        if (!empty($student->province_psgc)) {
-            $provinceName = Province::where('psgc_code', $student->province_psgc)->value('name');
-        }
-        if (!empty($student->citymun_psgc)) {
-            $citymunName = CityMunicipality::where('psgc_code', $student->citymun_psgc)->value('name');
-        }
-        if (!empty($student->brgy_psgc)) {
-            $brgyName = Barangay::where('psgc_code', $student->brgy_psgc)->value('name');
-        }
+        abort_if(!$student, 404);
+
+        // Address (PSGC -> Names)
+        $regionName   = !empty($student->region_psgc)
+            ? Region::where('psgc_code', $student->region_psgc)->value('name')
+            : null;
+
+        $provinceName = !empty($student->province_psgc)
+            ? Province::where('psgc_code', $student->province_psgc)->value('name')
+            : null;
+
+        $citymunName  = !empty($student->citymun_psgc)
+            ? CityMunicipality::where('psgc_code', $student->citymun_psgc)->value('name')
+            : null;
+
+        $brgyName     = !empty($student->brgy_psgc)
+            ? Barangay::where('psgc_code', $student->brgy_psgc)->value('name')
+            : null;
 
         $presentAddress = trim(implode(', ', array_filter([
             $student->address_line ?? null,
@@ -358,11 +365,9 @@ public function success($studID)
             $regionName,
         ])));
 
-        // =========================
-        // Guardians (Father/Mother display)
-        // =========================
+        // Guardians (Father/Mother)
         $guardians = DB::table('tbl_guardian')
-            ->where('studID', $student->studID)
+            ->where('prereg_id', $preregId)
             ->get();
 
         $father = $guardians->firstWhere('relationship', 'Father');
@@ -371,9 +376,7 @@ public function success($studID)
         $fatherName = $father ? trim(implode(' ', array_filter([$father->guardFNAME, $father->guardMname, $father->guardLname]))) : null;
         $motherName = $mother ? trim(implode(' ', array_filter([$mother->guardFNAME, $mother->guardMname, $mother->guardLname]))) : null;
 
-        // =========================
-        // Photo: embed as base64 Data URI for DomPDF reliability
-        // =========================
+        // Photo
         $photoDataUri = null;
         if (!empty($student->profile_photo_path)) {
             $fullPath = storage_path('app/public/' . $student->profile_photo_path);
@@ -394,9 +397,6 @@ public function success($studID)
             'motherName'     => $motherName,
         ])->setPaper('A4', 'portrait');
 
-        return $pdf->stream("prereg_{$student->studID}.pdf");
-        // return $pdf->download("prereg_{$student->studID}.pdf");
+        return $pdf->stream("prereg_{$preregId}.pdf");
     }
-
-
 }

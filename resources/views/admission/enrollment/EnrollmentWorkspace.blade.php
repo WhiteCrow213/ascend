@@ -355,11 +355,30 @@
 
 @section('content')
 <div class="ew-page">
+  @php
+    // Dashboard header: Active School Year + current date/time
+    // If controller didn't pass $activeTerm, we safely fetch the active term here.
+    $activeTerm = $activeTerm ?? \Illuminate\Support\Facades\DB::table('tbl_terms')
+        ->where('is_active', 1)
+        ->orderByDesc('term_id')
+        ->first();
+
+    $schoolYearText = $activeTerm->school_year ?? '—';
+
+    $now = \Carbon\Carbon::now();
+  @endphp
+
 
   <div class="ew-hero">
     <div class="ew-hero-topline">
       <div class="left">Overview</div>
-      <div class="right">School Year | <span style="opacity:.95;">2024-2025</span> | April 24, 2024 | 10:55 AM</div>
+      <div class="right">
+        School Year | <span style="opacity:.95;">{{ $schoolYearText }}</span>
+        <span class="mx-1">|</span>
+        <span id="ascendDate"></span>
+        <span class="mx-1">|</span>
+        <span id="ascendTime"></span>
+      </div>
     </div>
 
     <div class="ew-hero-grid">
@@ -477,4 +496,43 @@
 
   </div>
 </div>
+
+
+<script>
+(function () {
+    const dateEl = document.getElementById('ascendDate');
+    const timeEl = document.getElementById('ascendTime');
+    if (!dateEl || !timeEl) return;
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    function updateClock() {
+        const now = new Date();
+
+        const dateStr = now.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: '2-digit'
+        });
+
+        let hours = now.getHours();
+        const minutes = pad(now.getMinutes());
+        const seconds = pad(now.getSeconds());
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12; // 0 -> 12
+        const timeStr = `${pad(hours)}:${minutes}:${seconds} ${ampm}`;
+
+        dateEl.textContent = dateStr;
+        timeEl.textContent = timeStr;
+    }
+
+    updateClock();
+    setInterval(updateClock, 1000);
+})();
+</script>
+
 @endsection
+
+
+
