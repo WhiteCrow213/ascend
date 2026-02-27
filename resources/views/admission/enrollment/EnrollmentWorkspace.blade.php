@@ -38,7 +38,7 @@
 
   .ew-hero-grid{
     display:grid;
-    grid-template-columns: 260px 1fr 380px;
+    grid-template-columns: 260px 1fr 360px;
     gap: 22px;
     align-items: stretch;
     margin-top: 6px;
@@ -68,6 +68,13 @@
     text-transform: uppercase;
     letter-spacing: .8px;
   }
+  .ew-photo-img{
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 14px;
+    display: block;
+  }
   .ew-studno-pill{
     position:absolute;
     left: 14px;
@@ -96,6 +103,9 @@
     color: rgba(255,255,255,.92);
   }
   .ew-name{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-size: 40px;
     font-weight: 200;
     letter-spacing: .2px;
@@ -173,6 +183,14 @@
   .ew-stat .k{ font-size: 12px; opacity:.70; }
   .ew-stat .v{ font-size: 22px; font-weight: 600; margin-top: 3px; }
   .ew-stat .sub{ font-size: 12px; opacity:.75; margin-top: 2px; }
+
+
+  /* Prevent wrapping for college & program text */
+  .ew-meta .value{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
   /* Tabs */
   .ew-tabs{
@@ -365,7 +383,60 @@
 
     $schoolYearText = $activeTerm->school_year ?? '—';
 
+
+    // ✅ Active semester text (DB-confirmed):
+    // tbl_terms.semester holds values like 1, 2, or strings like "summer".
+    $semesterRaw = $activeTerm->semester ?? null;
+
+    if (is_null($semesterRaw) || trim((string)$semesterRaw) === '') {
+        $semesterText = '—';
+    } elseif (is_numeric($semesterRaw)) {
+        $semInt = (int) $semesterRaw;
+        $semesterText = match ($semInt) {
+            1 => 'First Semester',
+            2 => 'Second Semester',
+            default => 'Semester ' . $semInt,
+        };
+    } else {
+        // e.g., "summer" -> "Summer"
+        $semesterText = ucwords(str_replace('_', ' ', (string) $semesterRaw));
+    }
+
     $now = \Carbon\Carbon::now();
+
+    // ✅ Student context
+    // Controller may pass $student (canonical) and/or $enrollment (optional context).
+    // For backward compatibility, we treat $enrollment as a valid snapshot for identity fields.
+    $student = $student ?? $enrollment ?? null;
+
+    $studentNumber = $student?->stud_number
+        ?? $student?->StudentNumber
+        ?? $student?->ApplicantNum
+        ?? '—';
+
+    $fullName = trim(implode(' ', array_filter([
+        $student?->FirstName ?? null,
+        $student?->MiddleName ?? ($student?->MidName ?? null),
+        $student?->LastName ?? null,
+    ]))) ?: '—';
+
+    // Middle initial display (do not show full middle name)
+    $midRaw = $student->MiddleName ?? $student->MidName ?? $student->middle_name ?? null;
+    $middleInitial = '';
+    if (!empty($midRaw)) {
+        $middleInitial = strtoupper(substr(trim($midRaw), 0, 1)) . '.';
+    }
+    $fullNameDisplay = trim(($student->FirstName ?? '') . ' ' . $middleInitial . ' ' . ($student->LastName ?? ''));
+
+
+    $programText = $student?->FirstProgramChoice ?? '—';
+
+    // ✅ College text (from program->college join via controller)
+    $collegeText = $student?->college_name
+        ?? $student?->CollegeName
+        ?? null;
+
+
   @endphp
 
 
@@ -373,7 +444,7 @@
     <div class="ew-hero-topline">
       <div class="left">Overview</div>
       <div class="right">
-        School Year | <span style="opacity:.95;">{{ $schoolYearText }}</span>
+        <span style="opacity:.95;">{{ $schoolYearText }}</span> <span class="mx-1">|</span> <span style="opacity:.95;">{{ $semesterText }}</span>
         <span class="mx-1">|</span>
         <span id="ascendDate"></span>
         <span class="mx-1">|</span>
@@ -384,7 +455,18 @@
     <div class="ew-hero-grid">
       {{-- Photo card --}}
       <div class="ew-photo-card">
-        <div class="ew-photo">PHOTO</div>
+        <div class="ew-photo">
+          @php
+            $photoPath = $student?->profile_photo_path ?? $enrollment?->profile_photo_path ?? null;
+            $photoPath = $photoPath ? ltrim($photoPath, '/') : null;
+          @endphp
+
+          @if($photoPath)
+            <img src="{{ '/storage/' . $photoPath }}" alt="Student Photo" class="ew-photo-img">
+          @else
+            PHOTO
+          @endif
+        </div>
       </div>
 
       {{-- Identity / snapshot --}}
@@ -392,27 +474,22 @@
 
       <div class="ew-studno-inline">
     <span class="ew-pill-dot"></span>
-    <span>2024-00123</span>
+    <span>{{ $studentNumber }}</span>
 </div>
-        <div class="ew-name">Alexander Santos</div>
+        <div class="ew-name">{{ $fullNameDisplay ?? $fullName }}</div>
 
         <div class="ew-meta">
           <div class="block">
-            <div class="value">College of Business</div>
-            <div class="value">BS in Business Administration</div>
-            <div class="value">3rd Year</div>
-          </div>
-          <div class="block">
-            <div class="label">Active Term:</div>
-            <div class="value">15</div>
-            <div style="height:8px"></div>
-            <div class="label">Account Balance:</div>
-            <div class="value">₱ 12,500.00</div>
+            @if(!empty($collegeText))
+            <div class="value">{{ $collegeText }}</div>
+            @endif
+            <div class="value">{{ $programText }}</div>
           </div>
         </div>
       </div>
 
-      {{-- Status card --}}
+
+      {{-- Enrollment / finance snapshot (right card) --}}
       <div class="ew-status-card">
         <div class="ew-status-top">
           <div class="left">
@@ -425,8 +502,8 @@
         <div class="ew-status-bottom">
           <div class="ew-stat">
             <div class="k">Active Term:</div>
-            <div class="v">15</div>
-            <div class="sub">2nd Semester</div>
+            <div class="v">{{ $activeTerm?->term_id ?? '—' }}</div>
+            <div class="sub">{{ $semesterText }}</div>
           </div>
           <div class="ew-stat">
             <div class="k">Balance:</div>
@@ -435,6 +512,8 @@
           </div>
         </div>
       </div>
+
+
     </div>
 
     {{-- Tabs row (placeholders) --}}
@@ -445,7 +524,6 @@
       <span class="ew-tab">Grades</span>
       <span class="ew-tab">Billing &amp; Ledger</span>
     </div>
-  </div>
 
   {{-- Body: left panels + main content --}}
   <div class="ew-body">
@@ -530,6 +608,28 @@
     updateClock();
     setInterval(updateClock, 1000);
 })();
+
+  // Fit long names into one line by shrinking font-size (no wrap)
+  function fitNameText() {
+    const el = document.querySelector('.ew-name');
+    if (!el) return;
+
+    const max = 40;   // starting size (matches current design)
+    const min = 22;   // do not go smaller than this
+    el.style.fontSize = max + 'px';
+
+    // If it overflows, shrink until it fits (or hits min)
+    let size = max;
+    while (size > min && el.scrollWidth > el.clientWidth) {
+      size -= 1;
+      el.style.fontSize = size + 'px';
+    }
+  }
+
+
+  // Run once after clock paint
+  fitNameText();
+  window.addEventListener('resize', fitNameText);
 </script>
 
 @endsection

@@ -182,7 +182,7 @@
         <tr>
           <th style="width:160px;">Code</th>
           <th>Name</th>
-          <th style="width:200px;">Department</th>
+          <th style="width:200px;">College</th>
           <th style="width:120px;">Status</th>
           <th style="width:120px;">Action</th>
         </tr>
@@ -192,7 +192,7 @@
         <tr>
           <td>{{ $program->program_code }}</td>
           <td>{{ $program->program_name }}</td>
-          <td>{{ $program->department ?? '—' }}</td>
+          <td>{{ $program->college_name ?? '—' }}</td>
           <td>
             <span class="asc-pill">
               <span class="asc-dot"></span>
@@ -206,7 +206,7 @@
                   {{ $program->IDProgram }},
                   @json($program->program_code),
                   @json($program->program_name),
-                  @json($program->department),
+                  @json($program->collegeID),
                   @json($program->IDcurr)
                 )'>
                 Edit

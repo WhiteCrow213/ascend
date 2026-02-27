@@ -54,6 +54,11 @@ class EnrollmentController extends Controller
     {
         $enrollment = DB::table('tbl_enrollments as e')
             ->join('tbl_student_info as s', 's.studID', '=', 'e.studID')
+            ->leftJoin('tbl_program as p', function($join) {
+                $join->on('p.program_name', '=', 's.FirstProgramChoice')
+                     ->orOn('p.program_code', '=', 's.FirstProgramChoice');
+            })
+            ->leftJoin('tbl_colleges as c', 'c.collegeID', '=', 'p.collegeID')
             ->leftJoin('tbl_terms as t', 't.term_id', '=', 'e.term_id')
             ->select([
                 'e.enrollment_id',
@@ -70,6 +75,10 @@ class EnrollmentController extends Controller
                 DB::raw('s.MidName as MiddleName'),
                 's.FirstProgramChoice',
                 's.application_status',
+                's.stud_number',
+                's.profile_photo_path',
+                'c.college_name',
+                'c.college_code',
                 // term (keep generic; may be null if columns differ)
                 DB::raw('t.term_id as term_term_id'),
             ])
@@ -80,10 +89,79 @@ class EnrollmentController extends Controller
             abort(404);
         }
 
-        return view('admission.enrollment.EnrollmentWorkspace', compact('enrollment'));
+            $student = $enrollment; // ✅ same snapshot object, reused by the dashboard blade
+
+        return view('admission.enrollment.EnrollmentWorkspace', compact('enrollment', 'student'));
     }
 
-    // ✅ Start Enrollment (creates harmless draft) + opens Enrollment Workspace
+    
+    /**
+     * ✅ Student Dashboard (canonical room)
+     * Rule: Dashboard identity is studID. Enrollment is optional context.
+     * This is intentionally kept inside EnrollmentController for now (surgical, no new files required).
+     */
+    public function studentDashboard(Request $request, int $studID)
+    {
+        // 1) Always load the student by studID (canonical identity)
+        $student = DB::table('tbl_student_info as s')
+            ->leftJoin('tbl_program as p', function($join) {
+                $join->on('p.program_name', '=', 's.FirstProgramChoice')
+                     ->orOn('p.program_code', '=', 's.FirstProgramChoice');
+            })
+            ->leftJoin('tbl_colleges as c', 'c.collegeID', '=', 'p.collegeID')
+            ->select('s.*', 'c.college_name', 'c.college_code')
+            ->where('s.studID', $studID)
+            ->first();
+
+        if (!$student) {
+            abort(404);
+        }
+
+        // 2) Optional enrollment context (from querystring)
+        $enrollment = null;
+        $enrollmentId = (int) $request->query('enrollment_id', 0);
+
+        if ($enrollmentId > 0) {
+            $enrollment = DB::table('tbl_enrollments as e')
+                ->join('tbl_student_info as s', 's.studID', '=', 'e.studID')
+                ->leftJoin('tbl_program as p', function($join) {
+                $join->on('p.program_name', '=', 's.FirstProgramChoice')
+                     ->orOn('p.program_code', '=', 's.FirstProgramChoice');
+            })
+                ->leftJoin('tbl_colleges as c', 'c.collegeID', '=', 'p.collegeID')
+                ->leftJoin('tbl_terms as t', 't.term_id', '=', 'e.term_id')
+                ->select([
+                    'e.enrollment_id',
+                    'e.studID',
+                    'e.term_id',
+                    'e.status',
+                    'e.finalized_at',
+                    'e.created_at',
+                    'e.updated_at',
+                    // student snapshot (only what we know exists)
+                    's.ApplicantNum',
+                    's.LastName',
+                    's.FirstName',
+                    DB::raw('s.MidName as MiddleName'),
+                    's.stud_number',
+                    's.profile_photo_path',
+                's.profile_photo_path',
+                    's.FirstProgramChoice',
+                    's.application_status',
+                    // term (keep generic; may be null if columns differ)
+                    DB::raw('t.term_id as term_term_id'),
+                ])
+                ->where('e.enrollment_id', $enrollmentId)
+                ->where('e.studID', $studID) // ✅ safety: prevent mismatched context
+                ->first();
+        }
+
+        // NOTE: We reuse the existing workspace blade (now "Student Overview" room).
+        return view('admission.enrollment.EnrollmentWorkspace', compact('student', 'enrollment'));
+    }
+
+
+// ✅ Start Enrollment (creates harmless draft) + opens Enrollment Workspace
     public function start(Request $request, int $studID)
     {
         $activeTermId = DB::table('tbl_terms')->where('is_active', 1)->value('term_id');

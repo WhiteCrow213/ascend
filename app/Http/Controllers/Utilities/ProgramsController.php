@@ -10,8 +10,14 @@ class ProgramsController extends Controller
 {
     public function index()
     {
-        $programs = DB::table('tbl_program')
-            ->orderBy('program_code')
+        $programs = DB::table('tbl_program as p')
+            ->leftJoin('tbl_colleges as c', 'p.collegeID', '=', 'c.collegeID')
+            ->select(
+                'p.*',
+                'c.college_name',
+                'c.college_code'
+            )
+            ->orderBy('p.program_code')
             ->get();
 
         // Default curriculum options (active only)
@@ -20,7 +26,11 @@ class ProgramsController extends Controller
             ->orderBy('CurrName')
             ->get();
 
-        return view('utilities.programs.index', compact('programs', 'curriculums'));
+        $colleges = DB::table('tbl_colleges')
+            ->orderBy('college_code')
+            ->get();
+
+        return view('utilities.programs.index', compact('programs', 'curriculums', 'colleges'));
     }
 
     public function store(Request $request)
@@ -28,12 +38,14 @@ class ProgramsController extends Controller
         $request->validate([
             'program_code' => 'required|max:20|unique:tbl_program,program_code',
             'program_name' => 'required|max:150',
+            'collegeID'    => 'required|integer|exists:tbl_colleges,collegeID',
             'IDcurr'       => 'nullable|integer|exists:tbl_curriculum,IDcurr',
         ]);
 
         DB::table('tbl_program')->insert([
             'program_code' => $request->program_code,
             'program_name' => $request->program_name,
+            'collegeID'    => $request->filled('collegeID') ? (int) $request->collegeID : null,
             'department'   => $request->department,
             'IDcurr'       => $request->filled('IDcurr') ? (int) $request->IDcurr : null,
             'is_active'    => 1,
@@ -47,6 +59,7 @@ class ProgramsController extends Controller
         $request->validate([
             'program_code' => 'required|max:20|unique:tbl_program,program_code,' . $id . ',IDProgram',
             'program_name' => 'required|max:150',
+            'collegeID'    => 'required|integer|exists:tbl_colleges,collegeID',
             'IDcurr'       => 'nullable|integer|exists:tbl_curriculum,IDcurr',
         ]);
 
@@ -55,6 +68,7 @@ class ProgramsController extends Controller
             ->update([
                 'program_code' => $request->program_code,
                 'program_name' => $request->program_name,
+                'collegeID'    => $request->filled('collegeID') ? (int) $request->collegeID : null,
                 'department'   => $request->department,
                 'IDcurr'       => $request->filled('IDcurr') ? (int) $request->IDcurr : null,
             ]);

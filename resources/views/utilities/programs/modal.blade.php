@@ -39,9 +39,19 @@
             </div>
 
             <div style="margin-bottom:20px;">
-                <label style="font-weight:800; font-size:12px;">Department</label>
-                <input type="text" name="department" id="department"
-                       style="width:100%; padding:10px; border-radius:12px; border:1px solid #ddd; margin-top:6px;">
+                <label style="font-weight:800; font-size:12px;">College</label>
+                <select name="collegeID" id="collegeID" required
+                        style="width:100%; padding:10px; border-radius:12px; border:1px solid #ddd; margin-top:6px; background:#fff;">
+                    <option value="">— Select College —</option>
+                    @foreach($colleges as $college)
+                        <option value="{{ $college->collegeID }}">
+                            {{ $college->college_code }} — {{ $college->college_name }}
+                        </option>
+                    @endforeach
+                </select>
+                <div style="margin-top:6px; font-size:12px; color:#6b7280; font-weight:700;">
+                    Associates this program with a college (tbl_colleges).
+                </div>
             </div>
 
 
@@ -81,16 +91,18 @@
         document.getElementById('programForm').action = "{{ route('utilities.programs.store') }}";
         document.getElementById('program_code').value='';
         document.getElementById('program_name').value='';
-        document.getElementById('department').value='';
+        if (document.getElementById('collegeID')) document.getElementById('collegeID').value='';
         document.getElementById('IDcurr').value='';
         document.getElementById('programModal').style.display='block';
     }
 
-    function openEditModal(id,code,name,dept,currId){
+    function openEditModal(id,code,name,collegeId,currId){
         document.getElementById('programForm').action = updateUrlTemplate.replace('__ID__', id);
         document.getElementById('program_code').value = code || '';
         document.getElementById('program_name').value = name || '';
-        document.getElementById('department').value = dept || '';
+        if (document.getElementById('collegeID')) {
+            document.getElementById('collegeID').value = (collegeId === null || collegeId === undefined) ? '' : String(collegeId);
+        }
         document.getElementById('IDcurr').value = (currId === null || currId === undefined) ? '' : String(currId);
         document.getElementById('programModal').style.display='block';
     }
