@@ -89,7 +89,8 @@ class PreRegistrationController extends Controller
             'Gender'      => ['required', 'string', 'max:10'],
             'Citizenship' => ['required', 'string', 'max:20'],
             'CivilStatus' => ['required', 'string', 'max:20'],
-            'Religion'    => ['required', 'string', 'max:50'],
+            'Religion'      => ['required', 'string', 'max:50'],
+            'ReligionOther' => ['nullable', 'string', 'max:50'],
 
             'Bloodtype'   => ['nullable', 'string', 'max:10'],
             'Height'      => ['nullable', 'numeric', 'min:0'],
@@ -153,6 +154,31 @@ class PreRegistrationController extends Controller
             // Step 5 photo (optional) - cropped photo data URL (base64)
             'profile_photo_cropped' => ['nullable', 'string'],
         ]);
+        // Enforce Religion "Others" behavior
+        if (($validated['Religion'] ?? null) === 'Others') {
+            $other = trim((string) $request->input('ReligionOther', ''));
+            if ($other === '') {
+                return back()
+                    ->withErrors(['ReligionOther' => 'Please specify religion.'])
+                    ->withInput();
+            }
+            $validated['Religion'] = $other;
+        }
+
+        // ✅ IMPORTANT: tbl_prereg_applicants does NOT have a ReligionOther column.
+        // We store the final value in Religion (either selected value, or the "Others" text).
+        // So we must drop ReligionOther before insert to avoid SQL "Unknown column" errors.
+        unset($validated['ReligionOther']);
+
+        // Auto-set Year Level on prereg
+        // Freshman => First Year (IDyearlvl = 1), Transferee => NULL
+        $appType = $validated['applicant_type'] ?? null;
+        if ($appType === 'Freshman') {
+            $validated['IDyearlvl'] = 1;
+        } elseif ($appType === 'Transferee') {
+            $validated['IDyearlvl'] = null;
+        }
+
 
         $photoDataUrl = $validated['profile_photo_cropped'] ?? null;
         unset($validated['profile_photo_cropped']);

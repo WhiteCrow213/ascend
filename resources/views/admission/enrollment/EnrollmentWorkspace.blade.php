@@ -535,7 +535,11 @@
           <span class="ew-action"><span class="ew-ic">👤</span> View Information</span>
           <span class="ew-action"><span class="ew-ic">🧾</span> View Grades</span>
           <span class="ew-action"><span class="ew-ic">📚</span> View Load</span>
-          <span class="ew-action"><span class="ew-ic">➕</span> Enroll Student</span>
+          @if(!empty($enrollment) && !empty($enrollment->enrollment_id))
+          <a class="ew-action" href="{{ route('admission.enrollment.form', ['enrollmentId' => $enrollment->enrollment_id]) }}"><span class="ew-ic">➕</span> Enroll Student</a>
+          @else
+          <span class="ew-action" style="opacity:.55; cursor:not-allowed;"><span class="ew-ic">➕</span> Enroll Student</span>
+          @endif
         </div>
       </div>
 

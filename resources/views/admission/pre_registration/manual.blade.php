@@ -142,7 +142,31 @@
 
     <div class="field">
       <label>Religion</label>
-      <input name="Religion" value="{{ old('Religion') }}" required class="sentence">
+      <select name="Religion" id="ReligionSelect" required>
+        <option value="">Select</option>
+          <option value="Roman Catholic" @selected(old('Religion')==='Roman Catholic')>Roman Catholic</option>
+          <option value="Islam" @selected(old('Religion')==='Islam')>Islam</option>
+          <option value="Iglesia ni Cristo" @selected(old('Religion')==='Iglesia ni Cristo')>Iglesia ni Cristo</option>
+          <option value="Protestant" @selected(old('Religion')==='Protestant')>Protestant</option>
+          <option value="Seventh-day Adventist" @selected(old('Religion')==='Seventh-day Adventist')>Seventh-day Adventist</option>
+          <option value="Jehovah's Witnesses" @selected(old('Religion')==='Jehovah's Witnesses')>Jehovah's Witnesses</option>
+          <option value="Born Again / Evangelical" @selected(old('Religion')==='Born Again / Evangelical')>Born Again / Evangelical</option>
+          <option value="Buddhism" @selected(old('Religion')==='Buddhism')>Buddhism</option>
+          <option value="Hinduism" @selected(old('Religion')==='Hinduism')>Hinduism</option>
+          <option value="Judaism" @selected(old('Religion')==='Judaism')>Judaism</option>
+          <option value="None" @selected(old('Religion')==='None')>None</option>
+          <option value="Others" @selected(old('Religion')==='Others')>Others</option>
+      </select>
+
+      <input
+        type="text"
+        name="ReligionOther"
+        id="ReligionOther"
+        value="{{ old('ReligionOther') }}"
+        class="sentence"
+        placeholder="Please specify religion"
+        style="margin-top:8px; display:none;"
+      >
     </div>
 
     {{-- ROW 5 (Height + Weight + Blood Type) --}}
@@ -168,13 +192,16 @@
   <div class="grid2">
     <div class="field">
       <label>Region</label>
-      <select id="region_psgc" name="region_psgc" required>
-        <option value="">Select region</option>
-        @foreach(($regions ?? []) as $r)
-          <option value="{{ $r->psgc_code }}" @selected(old('region_psgc')===$r->psgc_code)>
-            {{ $r->name }}
-          </option>
-        @endforeach
+      @php
+          $oldRegion = old('region_psgc');
+        @endphp
+        <select id="region_psgc" name="region_psgc" required>
+          <option value="">Select region</option>
+          @foreach(($regions ?? []) as $reg)
+            <option value="{{ $reg->psgc_code }}" {{ ((string)$oldRegion === (string)$reg->psgc_code) ? 'selected' : '' }}>
+              {{ $reg->name }}
+            </option>
+          @endforeach
       </select>
     </div>
 
@@ -1109,4 +1136,29 @@ h2 { margin: 16px 0 14px; font-size: 16px; font-weight: 700; }
 @media (max-width: 900px) { .grid3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .grid3, .grid2 { grid-template-columns: 1fr; } .field.short{max-width:100%;} }
 </style>
+
+<script>
+  (function(){
+    const sel = document.getElementById('ReligionSelect');
+    const other = document.getElementById('ReligionOther');
+    if(!sel || !other) return;
+
+    function sync(){
+      const isOther = sel.value === 'Others';
+      other.style.display = isOther ? 'block' : 'none';
+      other.required = isOther;
+      if(!isOther) other.value = '';
+    }
+
+    sel.addEventListener('change', sync);
+    // initial
+    sync();
+    // if old value exists and was Others, show field
+    if(sel.value === 'Others'){
+      other.style.display = 'block';
+      other.required = true;
+    }
+  })();
+</script>
+
 @endsection

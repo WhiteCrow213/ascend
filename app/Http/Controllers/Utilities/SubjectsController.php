@@ -8,7 +8,41 @@ use Illuminate\Routing\Controller;
 
 class SubjectsController extends Controller
 {
-    public function index()
+    
+    private function buildPrereqSubjString(array $prereqIds, int $selfId): ?string
+    {
+        // Remove self, duplicates, non-numeric
+        $ids = collect($prereqIds)
+            ->map(fn($v) => (int)$v)
+            ->filter(fn($v) => $v > 0 && $v !== $selfId)
+            ->unique()
+            ->values()
+            ->all();
+
+        if (count($ids) === 0) {
+            return null;
+        }
+
+        // Since selections come from active search, IDs should exist,
+        // but we still resolve defensively to keep DB clean.
+        $codes = DB::table('tbl_subjects')
+            ->whereIn('IDsubj', $ids)
+            ->orderBy('CourseCode')
+            ->pluck('CourseCode')
+            ->map(fn($c) => trim((string)$c))
+            ->filter(fn($c) => $c !== '')
+            ->unique()
+            ->values()
+            ->all();
+
+        if (count($codes) === 0) {
+            return null;
+        }
+
+        return implode(',', $codes);
+    }
+
+public function index()
     {
         $subjects = DB::table('tbl_subjects as s')
             ->leftJoin('tbl_subject_prerequisites as sp', 's.IDsubj', '=', 'sp.IDsubj')
@@ -79,6 +113,12 @@ class SubjectsController extends Controller
             }
         }
 
+        // Mirror prerequisites into tbl_subjects.PrereqSubj as comma-separated CourseCodes (nullable)
+        $prereqStr = $this->buildPrereqSubjString($prereqIds, (int)$newId);
+        DB::table('tbl_subjects')->where('IDsubj', $newId)->update([
+            'PrereqSubj' => $prereqStr,
+        ]);
+
         return redirect()
             ->route('utilities.subjects.index')
             ->with('success', 'Subject added successfully.');
@@ -127,7 +167,14 @@ class SubjectsController extends Controller
             }
         }
 
-        return redirect()
+        
+        // Mirror prerequisites into tbl_subjects.PrereqSubj as comma-separated CourseCodes (nullable)
+        $prereqStr = $this->buildPrereqSubjString($prereqIds, (int)$id);
+        DB::table('tbl_subjects')->where('IDsubj', $id)->update([
+            'PrereqSubj' => $prereqStr,
+        ]);
+
+return redirect()
             ->route('utilities.subjects.index')
             ->with('success', 'Subject updated successfully.');
     }

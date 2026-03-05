@@ -125,7 +125,7 @@
             <a href="#"><span class="iconbox">🗂️</span><span>Registrar</span></a>
             <a href="#"><span class="iconbox">🧮</span><span>Accounting</span></a>
             <a href="#"><span class="iconbox">🧾</span><span>Billing</span></a>
-            <a href="#"><span class="iconbox">🏛️</span><span>Dean</span></a>
+            <a href="{{ route('dean.index') }}" class="{{ request()->routeIs('dean.*') ? 'active' : '' }}"><span class="iconbox">🏛️</span><span>Dean</span></a>
             <a href="#"><span class="iconbox">🧑‍🏫</span><span>Faculty</span></a>
             <a href="#"><span class="iconbox">👩‍🎓</span><span>Students</span></a>
             <a href="{{ route('utilities.index') }}"><span class="iconbox">🛠️</span><span>Utilities</span></a>

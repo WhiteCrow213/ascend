@@ -76,6 +76,25 @@ Route::post('/enrollment/{studID}/start', [EnrollmentController::class, 'start']
 Route::get('/enrollment/workspace/{enrollmentId}', [EnrollmentController::class, 'show'])
     ->name('admission.enrollment.show');
 
+Route::get('/enrollment/workspace/{enrollmentId}/form', [EnrollmentController::class, 'showForm'])
+    ->name('admission.enrollment.form');
+
+Route::post('/enrollment/workspace/{enrollmentId}/apply-academic', [EnrollmentController::class, 'applyAcademic'])
+    ->name('admission.enrollment.applyAcademic');
+
+
+
+
+
+// Add Subject modal (offerings search + add)
+Route::get('/enrollment/workspace/{enrollmentId}/offerings/search', [EnrollmentController::class, 'offeringsSearch'])
+    ->name('admission.enrollment.offerings.search');
+Route::post('/enrollment/workspace/{enrollmentId}/offerings/add', [EnrollmentController::class, 'offeringsAdd'])
+    ->name('admission.enrollment.offerings.add');
+
+// Remove subject from saved enrollment load
+Route::post('/enrollment/workspace/{enrollmentId}/subjects/{enrollSubjId}/remove', [EnrollmentController::class, 'subjectRemove'])
+    ->name('admission.enrollment.subjects.remove');
 
 
 Route::middleware(['web'])->group(function () {
@@ -177,3 +196,15 @@ Route::prefix('subjects')->name('utilities.subjects.')->group(function () {
 });
 });
 
+// ===============================
+// DEAN MODULE
+// ===============================
+
+Route::get('/dean', function () {
+    return view('dean.DeanIndex');
+})->name('dean.index');
+
+// Sections & Offerings (Dean schedule builder)
+Route::get('/dean/sections-offerings', function () {
+    return view('dean.SectionsOfferingsForm');
+})->name('dean.sections-offerings');
