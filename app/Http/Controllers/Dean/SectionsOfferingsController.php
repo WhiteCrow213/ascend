@@ -78,6 +78,7 @@ class SectionsOfferingsController extends Controller
             // EDIT MODE: Load existing offerings
             $rows = DB::table('tbl_section_offerings as o')
                 ->join($subjectsTable . ' as s', 's.IDsubj', '=', 'o.subject_id')
+                ->leftJoin('tbl_employees as e', 'e.IDemployees', '=', 'o.instructor_id')
                 ->select([
                     'o.subject_id',
                     's.CourseCode as subject_code',
@@ -88,6 +89,12 @@ class SectionsOfferingsController extends Controller
                     'o.time_end',
                     'o.room',
                     'o.student_limit as seat_limit',
+                    'o.instructor_id',
+                    DB::raw("CASE 
+                        WHEN e.IDemployees IS NULL THEN ''
+                        WHEN e.FacultyFirstName IS NULL OR e.FacultyFirstName = '' THEN e.FacultyLastName
+                        ELSE CONCAT(UPPER(LEFT(e.FacultyFirstName, 1)), '.', e.FacultyLastName)
+                    END as instructor_display"),
                 ])
                 ->where('o.section_id', $section->section_id)
                 ->orderBy('s.CourseCode')
@@ -126,6 +133,8 @@ class SectionsOfferingsController extends Controller
                 DB::raw('NULL as time_end'),
                 DB::raw('NULL as room'),
                 DB::raw('NULL as seat_limit'),
+                DB::raw('NULL as instructor_id'),
+                DB::raw("'' as instructor_display"),
             ])
             ->where('cm.IDcurr', $IDcurr)
             ->where('cm.IDyearlvl', $year_level)
@@ -271,6 +280,42 @@ SQL;
                 $time_start = isset($row['time_start']) && trim((string) $row['time_start']) !== '' ? trim((string) $row['time_start']) : null;
                 $time_end   = isset($row['time_end']) && trim((string) $row['time_end']) !== '' ? trim((string) $row['time_end']) : null;
                 $room       = isset($row['room']) && trim((string) $row['room']) !== '' ? trim((string) $row['room']) : null;
+                $instructor_id = isset($row['instructor_id']) && trim((string) $row['instructor_id']) !== ''
+                    ? (int) $row['instructor_id']
+                    : null;
+                $instructor_display = isset($row['instructor_display']) && trim((string) $row['instructor_display']) !== ''
+                    ? trim((string) $row['instructor_display'])
+                    : null;
+
+                if (!$instructor_id && $instructor_display) {
+                    $resolvedInstructor = DB::table('tbl_employees')
+                        ->select('IDemployees')
+                        ->where('position', 'Instructor')
+                        ->where(function ($query) use ($instructor_display) {
+                            $query->where(DB::raw("CONCAT(UPPER(LEFT(FacultyFirstName, 1)), '.', FacultyLastName)"), $instructor_display)
+                                  ->orWhere('FacultyLastName', $instructor_display);
+                        })
+                        ->first();
+
+                    if ($resolvedInstructor) {
+                        $instructor_id = (int) $resolvedInstructor->IDemployees;
+                    }
+                }
+
+                if ($instructor_id) {
+                    $instructorExists = DB::table('tbl_employees')
+                        ->where('IDemployees', $instructor_id)
+                        ->where('position', 'Instructor')
+                        ->exists();
+
+                    if (!$instructorExists) {
+                        throw new \RuntimeException('Selected instructor is invalid or no longer available.');
+                    }
+                }
+
+                if ($instructor_display && !$instructor_id) {
+                    throw new \RuntimeException('Instructor was typed but could not be matched. Please select a valid instructor.');
+                }
 
                 $seat_limit = null;
                 if (isset($row['seat_limit']) && trim((string) $row['seat_limit']) !== '') {
@@ -284,6 +329,30 @@ SQL;
 
                     if ($seat_limit <= 0) {
                         throw new \RuntimeException('Limit must be greater than 0.');
+                    }
+                }
+
+                // Prevent instructor schedule conflicts in the same active term.
+                if ($instructor_id && $day && $time_start && $time_end) {
+                    $instructorConflict = DB::table('tbl_section_offerings as o')
+                        ->join('tbl_sections as s', 's.section_id', '=', 'o.section_id')
+                        ->where('s.term_id', $activeTerm->term_id)
+                        ->where('o.instructor_id', $instructor_id)
+                        ->where('o.day_pattern', $day)
+                        ->where('o.time_start', '<', $time_end)
+                        ->where('o.time_end', '>', $time_start)
+                        ->where(function ($q) use ($section_id, $subject_id) {
+                            $q->where('o.section_id', '!=', $section_id)
+                              ->orWhere('o.subject_id', '!=', $subject_id);
+                        })
+                        ->select('o.time_start', 'o.time_end')
+                        ->first();
+
+                    if ($instructorConflict) {
+                        throw new \RuntimeException(
+                            'Instructor conflict: this instructor already has a class scheduled on ' . $day .
+                            ' from ' . $instructorConflict->time_start . ' to ' . $instructorConflict->time_end . '.'
+                        );
                     }
                 }
 
@@ -323,6 +392,7 @@ SQL;
                         'time_start'    => $time_start,
                         'time_end'      => $time_end,
                         'room'          => $room,
+                        'instructor_id' => $instructor_id,
                         'student_limit' => $seat_limit,
                         'created_at'    => now(),
                         'updated_at'    => now(),
@@ -345,4 +415,35 @@ SQL;
                 'message' => 'Save failed: ' . $e->getMessage(),
             ], 500);
         }
-    }}
+    }
+
+    public function searchInstructor(Request $request)
+    {
+        $q = trim((string) $request->get('q', ''));
+
+        $rows = DB::table('tbl_employees')
+            ->where('position', 'Instructor')
+            ->where(function ($query) use ($q) {
+                $query->where('FacultyLastName', 'like', "%{$q}%")
+                      ->orWhere('FacultyFirstName', 'like', "%{$q}%");
+            })
+            ->orderBy('FacultyLastName')
+            ->orderBy('FacultyFirstName')
+            ->limit(10)
+            ->get();
+
+        return response()->json(
+            $rows->map(function ($r) {
+                $firstInitial = !empty($r->FacultyFirstName)
+                    ? strtoupper(substr($r->FacultyFirstName, 0, 1)) . '.'
+                    : '';
+
+                return [
+                    'id' => $r->IDemployees,
+                    'display' => $firstInitial . $r->FacultyLastName,
+                ];
+            })->values()
+        );
+    }
+
+}

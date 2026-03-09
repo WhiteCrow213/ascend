@@ -10,6 +10,7 @@ use App\Http\Controllers\Utilities\TermController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Students\StudentProfileController;
 use App\Http\Controllers\Dean\SectionsOfferingsController;
+use App\Http\Controllers\Faculty\FacultyController;
 
 
 Route::get('/login', function () {
@@ -214,3 +215,19 @@ Route::post('/dean/sections-offerings/load-subjects', [SectionsOfferingsControll
 
 Route::post('/dean/sections-offerings/save', [SectionsOfferingsController::class, 'save'])
     ->name('dean.sections-offerings.save');
+
+Route::get('/dean/instructor-search', [SectionsOfferingsController::class, 'searchInstructor'])
+    ->name('dean.instructor.search');
+
+// ===============================
+// FACULTY MODULE
+// ===============================
+Route::prefix('faculty')->name('faculty.')->group(function () {
+    Route::get('/', [FacultyController::class, 'index'])->name('index');
+    Route::get('/create', [FacultyController::class, 'create'])->name('create');
+    Route::post('/store', [FacultyController::class, 'store'])->name('store');
+    Route::get('/{id}', [FacultyController::class, 'show'])->name('show');
+    Route::get('/{id}/edit', [FacultyController::class, 'edit'])->name('edit');
+    Route::post('/{id}/update', [FacultyController::class, 'update'])->name('update');
+    Route::delete('/{id}', [FacultyController::class, 'destroy'])->name('destroy');
+});

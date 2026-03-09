@@ -617,7 +617,19 @@
           </div>
         </td>
         <td class="center"><input class="w-room room-input" type="text" value="${r.room ?? ''}" /></td>
-        <td class="center"><input class="w-instructor instructor-input" type="text" value="${r.instructor ?? ''}" /></td>
+        <td class="center">
+          <div class="instructor-box" style="position:relative;">
+            <input class="w-instructor instructor-input instructor-search"
+                   type="text"
+                   autocomplete="off"
+                   placeholder="Search instructor"
+                   value="${r.instructor_display ?? ''}" />
+            <input type="hidden" class="instructor-id" value="${r.instructor_id ?? ''}" />
+            <div class="instructor-results"
+                 style="position:absolute; top:34px; left:0; right:0; background:#fff; border:1px solid rgba(0,0,0,.12);
+                        border-radius:10px; box-shadow:0 8px 20px rgba(0,0,0,.08); display:none; z-index:50;"></div>
+          </div>
+        </td>
         <td class="right"><input class="w-limit limit-input" type="text" value="${r.seat_limit ?? ''}" inputmode="numeric" pattern="[0-9]*" /></td>
         <td class="right mini">${r.enrolled_count ?? ''}</td>
       `;
@@ -661,6 +673,109 @@
   });
 
 
+  async function searchInstructor(term, container, input, hidden){
+    if(!term || term.length < 1){
+      container.innerHTML = '';
+      container.dataset.results = '[]';
+      container.style.display = 'none';
+      return;
+    }
+
+    try{
+      const res = await fetch('{{ route("dean.instructor.search") }}?q=' + encodeURIComponent(term));
+      const data = await res.json();
+
+      container.innerHTML = '';
+      container.dataset.results = JSON.stringify(data || []);
+
+      if(!data.length){
+        container.style.display = 'none';
+        return;
+      }
+
+      data.forEach(i=>{
+        const div = document.createElement('div');
+        div.textContent = i.display;
+        div.style.padding = '6px 8px';
+        div.style.cursor = 'pointer';
+        div.style.fontWeight = '700';
+
+        div.addEventListener('click', ()=>{
+          input.value = i.display;
+          hidden.value = i.id;
+          container.style.display = 'none';
+        });
+
+        container.appendChild(div);
+      });
+
+      container.style.display = 'block';
+    }catch(err){
+      console.error(err);
+    }
+  }
+
+  document.addEventListener('input', function(e){
+    if(!e.target.classList.contains('instructor-search')) return;
+
+    const box = e.target.closest('.instructor-box');
+    const results = box.querySelector('.instructor-results');
+    const hidden = box.querySelector('.instructor-id');
+
+    hidden.value = '';
+    searchInstructor(e.target.value, results, e.target, hidden);
+  });
+
+  document.addEventListener('keydown', function(e){
+    if(!e.target.classList.contains('instructor-search')) return;
+    if(e.key !== 'Enter') return;
+
+    const box = e.target.closest('.instructor-box');
+    const results = box.querySelector('.instructor-results');
+    const hidden = box.querySelector('.instructor-id');
+
+    let parsed = [];
+    try { parsed = JSON.parse(results.dataset.results || '[]'); } catch (_) {}
+
+    if(parsed.length > 0){
+      e.preventDefault();
+      e.target.value = parsed[0].display;
+      hidden.value = parsed[0].id;
+      results.style.display = 'none';
+    }
+  });
+
+  document.addEventListener('blur', function(e){
+    if(!e.target.classList.contains('instructor-search')) return;
+
+    const box = e.target.closest('.instructor-box');
+    const results = box.querySelector('.instructor-results');
+    const hidden = box.querySelector('.instructor-id');
+
+    let parsed = [];
+    try { parsed = JSON.parse(results.dataset.results || '[]'); } catch (_) {}
+
+    const typed = (e.target.value || '').trim();
+    if(typed !== '' && !hidden.value){
+      const exact = parsed.find(x => (x.display || '').toLowerCase() === typed.toLowerCase());
+      if(exact){
+        e.target.value = exact.display;
+        hidden.value = exact.id;
+      }
+    }
+
+    setTimeout(() => { results.style.display = 'none'; }, 150);
+  }, true);
+
+  document.addEventListener('click', function(e){
+    document.querySelectorAll('.instructor-results').forEach(r=>{
+      const box = r.closest('.instructor-box');
+      if(!box || !box.contains(e.target)){
+        r.style.display = 'none';
+      }
+    });
+  });
+
   btnSave?.addEventListener('click', async function(){
     const program_id = (programEl?.value || '').trim();
     const year_level = (yearEl?.value || '').trim();
@@ -691,7 +806,19 @@
         throw new Error('Limit must be greater than 0.');
       }
 
-      return { subject_id, day, time_start, time_end, room, seat_limit };
+      const instructor_text = tr.querySelector('.instructor-search')?.value.trim() || '';
+      const instructor_id = tr.querySelector('.instructor-id')?.value || '';
+
+      return {
+        subject_id,
+        day,
+        time_start,
+        time_end,
+        room,
+        instructor_id,
+        instructor_display: instructor_text,
+        seat_limit
+      };
     });
 
     try{
