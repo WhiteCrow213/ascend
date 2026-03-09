@@ -6,10 +6,7 @@
 <style>
   /* =========================================================
      ASCEND — Sections & Offerings (Revamp)
-     Goals:
-     - Cleaner hierarchy (less whitespace, better alignment)
-     - Compact table inputs (no giant pill look)
-     - Proper density to avoid "ugly AF" spaciousness
+     Rule 3: ALWAYS USE ASCEND THEME ON EVERYTHING!
      ========================================================= */
 
   :root{
@@ -52,13 +49,16 @@
     max-width: 820px;
   }
   .so-actions{ display:flex; gap:10px; flex-wrap:wrap; }
+  .so-actions .btnx{ white-space:nowrap; }
+
 
   /* Buttons */
   .btnx{
     border:1px solid var(--a-border2);
     background:#fff;
     border-radius: 12px;
-    padding: 8px 11px;
+    padding: 0 14px;
+    height:38px;
     font-weight:900;
     cursor:pointer;
     transition:transform .08s ease, box-shadow .08s ease, background .08s ease;
@@ -113,7 +113,7 @@
   /* Fields */
   .grid{
     display:grid;
-    grid-template-columns: 1.2fr .55fr .65fr .9fr 1fr;
+    grid-template-columns: 300px 150px 110px auto;
     gap:10px;
     align-items:end;
   }
@@ -142,28 +142,13 @@
     box-shadow: 0 0 0 4px rgba(124,58,237,.12);
   }
 
-  .row{
-    margin-top:10px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-    flex-wrap:wrap;
+  /* Keep top fields from visually stretching the layout */
+  .fg select,
+  .fg input{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .chips{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-  .chip{
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    padding: 8px 10px;
-    border-radius: 12px;
-    border:1px solid rgba(0,0,0,.10);
-    background: rgba(17,24,39,.02);
-    font-weight:900;
-    color: var(--a-text);
-    font-size:12px;
-  }
-  .chip span{ color: var(--a-muted); font-weight:950; }
 
   /* Table area */
   .panel{
@@ -197,17 +182,7 @@
     border:none; outline:none; width:100%;
     font-weight:750; color: var(--a-text);
     font-size:13px;
-  }
-  .tag{
-    display:inline-flex; align-items:center; gap:8px;
-    padding: 8px 10px;
-    border-radius: 12px;
-    background: rgba(124,58,237,.10);
-    border:1px solid rgba(124,58,237,.18);
-    font-weight:950;
-    color: #3b2a7a;
-    font-size:12px;
-    height: 38px;
+    background: transparent;
   }
 
   .scroll{
@@ -242,6 +217,7 @@
 
   .mini{ color: var(--a-muted); font-weight:850; }
   .right{ text-align:right; }
+  .center{ text-align:center; }
 
   /* Inline controls in cells — compact, not pill */
   .cell{
@@ -257,10 +233,11 @@
     border:1px solid rgba(0,0,0,.14);
     font-weight:800;
     font-size:12px;
+    background:#fff;
   }
   .w-day{ width:74px; }
-  .w-time{ width:108px; }
-  .w-room{ width:92px; }
+  .w-time{ width:90px; }
+  .w-room{ width:60px; }
   .room-input{
     height:30px;
     border-radius:10px;
@@ -275,7 +252,22 @@
     border-color:rgba(124,58,237,.65);
     box-shadow:0 0 0 3px rgba(124,58,237,.15);
   }
-  .w-limit{ width:84px; }
+  .w-instructor{ width:140px; }
+  .instructor-input{
+    height:30px;
+    border-radius:10px;
+    border:1px solid rgba(124,58,237,.35);
+    background:linear-gradient(180deg,rgba(124,58,237,.08),rgba(124,58,237,.03));
+    padding:0 8px;
+    font-weight:800;
+    color:#111827;
+  }
+  .instructor-input:focus{
+    outline:none;
+    border-color:rgba(124,58,237,.65);
+    box-shadow:0 0 0 3px rgba(124,58,237,.15);
+  }
+  .w-limit{ width:40px; }
   .limit-input{
     height:30px;
     border-radius:10px;
@@ -309,11 +301,74 @@
   .metric .k{ color: var(--a-muted); font-size:12px; }
   .metric .v{ color: var(--a-pri); font-size:16px; }
 
-  .note{
-    margin: 10px 2px 0;
-    color: var(--a-muted);
-    font-weight:650;
+  /* ASCEND Popup */
+  .so-popup-backdrop{
+    position:fixed;
+    inset:0;
+    background: rgba(17,24,39,.45);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:9999;
+    padding:20px;
+  }
+  .so-popup-backdrop.show{ display:flex; }
+
+  .so-popup{
+    width:min(460px, 100%);
+    background:#fff;
+    border:1px solid rgba(124,58,237,.18);
+    border-radius:20px;
+    box-shadow:0 24px 60px rgba(17,24,39,.22);
+    overflow:hidden;
+  }
+  .so-popup-head{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:14px 16px;
+    background: linear-gradient(180deg, rgba(124,58,237,.12), rgba(124,58,237,.04));
+    border-bottom:1px solid rgba(0,0,0,.06);
+  }
+  .so-popup-icon{
+    width:38px;
+    height:38px;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: rgba(124,58,237,.14);
+    font-size:18px;
+    flex:0 0 38px;
+  }
+  .so-popup-title{
+    margin:0;
+    font-size:15px;
+    font-weight:950;
+    color: var(--a-text);
+  }
+  .so-popup-sub{
+    margin:2px 0 0;
     font-size:12px;
+    color: var(--a-muted);
+    font-weight:700;
+  }
+  .so-popup-body{
+    padding:16px;
+  }
+  .so-popup-msg{
+    margin:0;
+    font-size:13px;
+    line-height:1.6;
+    color: var(--a-text);
+    font-weight:700;
+    white-space:pre-line;
+  }
+  .so-popup-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    padding:0 16px 16px;
   }
 
   @media (max-width: 1100px){
@@ -321,6 +376,7 @@
     .search{ min-width: 100%; }
     .cell{ flex-wrap:wrap; }
   }
+
 </style>
 @endpush
 
@@ -330,7 +386,7 @@
 
     <div class="so-head">
       <div>
-        <h1>Scheduling</h1>
+        <h1>Subject Loading</h1>
       </div>
 
     
@@ -345,57 +401,45 @@
             <p class="t">Section Setup</p>
           </div>
         </div>
-
-        <div class="so-actions">
-          <button class="btnx btnx-primary" type="button">➕ New Section</button>
-        </div>
-      </div>
+</div>
 
       <div class="card-b">
         <div class="grid">
           <div class="fg">
             <label>Program</label>
-            <select>
-              <option>— Select Program —</option>
-              <option>BEED</option>
-              <option>BSIT</option>
-              <option>BSCRIM</option>
+            <select id="program_id" name="program_id">
+              <option value="">— Select Program —</option>
+              @foreach($programs as $program)
+                <option value="{{ $program->IDProgram }}">
+                  {{ $program->program_code }} - {{ $program->program_name }}
+                </option>
+              @endforeach
             </select>
           </div>
 
           <div class="fg">
-            <label>Year</label>
-            <select>
-              <option>—</option>
-              <option>1</option><option>2</option><option>3</option><option>4</option>
+            <label>Year Level</label>
+            <select id="year_level" name="year_level">
+              <option value="">— Select Year Level —</option>
+              @foreach($yearLevels as $yearLevel)
+                <option value="{{ $yearLevel->IDyearlvl }}">
+                  {{ $yearLevel->YearLevelName }}
+                </option>
+              @endforeach
             </select>
           </div>
 
           <div class="fg">
-            <label>Term</label>
-            <select>
-              <option>— Active —</option>
-              <option>1st Sem</option>
-              <option>2nd Sem</option>
-              <option>Summer</option>
-            </select>
+            <label>Section Name</label>
+            <input id="section_name" name="section_name" type="text" placeholder="Alpha" autocomplete="off" />
           </div>
 
-          <div class="fg">
-            <label>Section (existing)</label>
-            <select>
-              <option>— Select —</option>
-              <option>Alpha</option>
-              <option>Beta</option>
-              <option>Gamma</option>
-            </select>
-          </div>
-
-          <div class="so-actions">
-            <button class="btnx" type="button">Load Subjects</button>
+          <div class="so-actions" style="justify-content:flex-start;">
+            <button id="btnLoadSubjects" class="btnx btnx-primary" type="button" style="margin-left: 20px;">Save & Load Subjects</button>
           </div>
         </div>
       </div>
+    </div>
     </div>
 
     {{-- OFFERINGS TABLE --}}
@@ -431,92 +475,15 @@
                   <th style="width:110px;">Code</th>
                   <th style="width:520px;">Title</th>
                   <th style="width:64px;" class="right">Units</th>
-                  <th style="width:320px;">Schedule</th>
+                  <th style="width:320px;" class="center">Schedule</th>
                   <th style="width:80px;" class = "center">Room</th>
+                  <th style="width:160px;" class="center">Instructor</th>
                   <th style="width:40px;" class="center">Limit</th>
                   <th style="width:66px;" class="right">Enrolled</th>
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td><input type="checkbox" /></td>
-                  <td>GE 109</td>
-                  <td>Living in the IT Era</td>
-                  <td class="right">3</td>
-                  <td>
-                    <div class="cell">
-                      <select class="w-day">
-                        <option>MW</option><option selected>TTH</option><option>MWF</option><option>Sat</option>
-                      </select>
-                      <input class="w-time" type="time" value="09:00" />
-                      <span class="mini">to</span>
-                      <input class="w-time" type="time" value="10:30" />
-                    </div>
-                  </td>
-                  <td><input class="w-room room-input" type="text" value="IT LAB" /></td>
-                  <td class="right"><input class="w-limit limit-input" type="number" min="1" value="60" /></td>
-                  <td class="right mini">52</td>
-                </tr>
 
-                <tr>
-                  <td><input type="checkbox" /></td>
-                  <td>GE 108</td>
-                  <td>Ethics</td>
-                  <td class="right">3</td>
-                  <td>
-                    <div class="cell">
-                      <select class="w-day">
-                        <option selected>MW</option><option>TTH</option><option>MWF</option><option>Sat</option>
-                      </select>
-                      <input class="w-time" type="time" value="07:30" />
-                      <span class="mini">to</span>
-                      <input class="w-time" type="time" value="09:00" />
-                    </div>
-                  </td>
-                  <td><input class="w-room room-input" type="text" value="12" /></td>
-                  <td class="right"><input class="w-limit limit-input" type="number" min="1" value="50" /></td>
-                  <td class="right mini">50</td>
-                </tr>
-
-                <tr>
-                  <td><input type="checkbox" /></td>
-                  <td>NSTP 102</td>
-                  <td>Literacy Training Service 2</td>
-                  <td class="right">3</td>
-                  <td>
-                    <div class="cell">
-                      <select class="w-day">
-                        <option>MW</option><option selected>TTH</option><option>MWF</option><option>Sat</option>
-                      </select>
-                      <input class="w-time" type="time" value="13:00" />
-                      <span class="mini">to</span>
-                      <input class="w-time" type="time" value="14:30" />
-                    </div>
-                  </td>
-                  <td><input class="w-room room-input" type="text" value="10" /></td>
-                  <td class="right"><input class="w-limit limit-input" type="number" min="1" value="55" /></td>
-                  <td class="right mini">55</td>
-                </tr>
-
-                <tr>
-                  <td><input type="checkbox" /></td>
-                  <td>GE 110</td>
-                  <td>Gender and Society</td>
-                  <td class="right">3</td>
-                  <td>
-                    <div class="cell">
-                      <select class="w-day">
-                        <option selected>MW</option><option>TTH</option><option>MWF</option><option>Sat</option>
-                      </select>
-                      <input class="w-time" type="time" value="14:30" />
-                      <span class="mini">to</span>
-                      <input class="w-time" type="time" value="16:00" />
-                    </div>
-                  </td>
-                  <td><input class="w-room room-input" type="text" value="17" /></td>
-                  <td class="right"><input class="w-limit limit-input" type="number" min="1" value="52" /></td>
-                  <td class="right mini">52</td>
-                </tr>
               </tbody>
             </table>
           </div>
@@ -528,6 +495,8 @@
             </div>
 
              <div class="so-actions">
+              <a href="{{ route('dean.index') }}" class="btnx">Back</a>
+          <button id="btnSaveSchedule" class="btnx btnx-primary" type="button">Save</button>
           <button class="btnx btnx-danger" type="button">Delete Selected</button>
         </div>
           </div>
@@ -538,4 +507,216 @@
 
   </div>
 </div>
+
+
+<div id="soPopupBackdrop" class="so-popup-backdrop" aria-hidden="true">
+  <div class="so-popup" role="dialog" aria-modal="true" aria-labelledby="soPopupTitle">
+    <div class="so-popup-head">
+      <div class="so-popup-icon">⚠️</div>
+      <div>
+        <p id="soPopupTitle" class="so-popup-title">ASCEND Notice</p>
+        <p class="so-popup-sub">Sections & Offerings</p>
+      </div>
+    </div>
+    <div class="so-popup-body">
+      <p id="soPopupMessage" class="so-popup-msg"></p>
+    </div>
+    <div class="so-popup-actions">
+      <button id="soPopupOk" type="button" class="btnx btnx-primary">Okay</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // Init guard
+  if(window.__ascendSectionsOfferingsInit){ return; }
+  window.__ascendSectionsOfferingsInit = true;
+
+  const btnLoad = document.getElementById('btnLoadSubjects');
+  const btnSave = document.getElementById('btnSaveSchedule');
+  const programEl = document.getElementById('program_id');
+  const yearEl = document.getElementById('year_level');
+  const sectionEl = document.getElementById('section_name');
+
+  const tbody = document.querySelector('table tbody');
+  const popupBackdrop = document.getElementById('soPopupBackdrop');
+  const popupMessage = document.getElementById('soPopupMessage');
+  const popupOk = document.getElementById('soPopupOk');
+
+  function toast(msg){
+    if(!popupBackdrop || !popupMessage){
+      alert(msg);
+      return;
+    }
+    popupMessage.textContent = msg || 'Notice';
+    popupBackdrop.classList.add('show');
+    popupBackdrop.setAttribute('aria-hidden', 'false');
+    setTimeout(() => popupOk?.focus(), 0);
+  }
+
+  function closeToast(){
+    popupBackdrop?.classList.remove('show');
+    popupBackdrop?.setAttribute('aria-hidden', 'true');
+  }
+
+  popupOk?.addEventListener('click', closeToast);
+  popupBackdrop?.addEventListener('click', function(e){
+    if(e.target === popupBackdrop){ closeToast(); }
+  });
+  document.addEventListener('input', function(e){
+    if(e.target.classList.contains('limit-input')){
+      e.target.value = (e.target.value || '').replace(/[^0-9]/g, '');
+    }
+  });
+
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && popupBackdrop?.classList.contains('show')){
+      closeToast();
+    }
+  });
+
+  async function postJson(url, payload){
+    const token = '{{ csrf_token() }}';
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': token || ''
+      },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json().catch(()=> ({}));
+    if(!res.ok){
+      const m = data?.message || ('Request failed (' + res.status + ')');
+      throw new Error(m);
+    }
+    return data;
+  }
+
+  function renderRows(rows){
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    rows.forEach((r)=>{
+      const tr = document.createElement('tr');
+      tr.dataset.subjectId = (r.subject_id ?? '');
+      tr.innerHTML = `
+        <td><input type="checkbox" /></td>
+        <td>${r.subject_code ?? ''}</td>
+        <td>${r.subject_title ?? ''}</td>
+        <td class="right">${r.units ?? ''}</td>
+        <td>
+          <div class="cell">
+            <select class="w-day">
+              <option value="">TBA</option>
+              <option value="MW">MW</option><option value="TTH">TTH</option><option value="MWF">MWF</option><option value="Sat">Sat</option><option value="Sun">Sun</option>
+            </select>
+            <input class="w-time" type="time" value="${r.time_start ?? ''}" />
+            <span class="mini">to</span>
+            <input class="w-time" type="time" value="${r.time_end ?? ''}" />
+          </div>
+        </td>
+        <td class="center"><input class="w-room room-input" type="text" value="${r.room ?? ''}" /></td>
+        <td class="center"><input class="w-instructor instructor-input" type="text" value="${r.instructor ?? ''}" /></td>
+        <td class="right"><input class="w-limit limit-input" type="text" value="${r.seat_limit ?? ''}" inputmode="numeric" pattern="[0-9]*" /></td>
+        <td class="right mini">${r.enrolled_count ?? ''}</td>
+      `;
+      // set day after adding options
+      const daySel = tr.querySelector('select.w-day');
+      if(daySel && (r.day ?? '') !== ''){
+        daySel.value = r.day;
+      }
+      tbody.appendChild(tr);
+    });
+  }
+
+  btnLoad?.addEventListener('click', async function(){
+    const program_id = (programEl?.value || '').trim();
+    const year_level = (yearEl?.value || '').trim();
+    const section_name = (sectionEl?.value || '').trim();
+
+    if(!program_id){ toast('Select Program first.'); return; }
+    if(!year_level){ toast('Select Year Level first.'); return; }
+    if(!section_name){ toast('Enter Section Name.'); sectionEl?.focus(); return; }
+
+    try{
+      const data = await postJson('{{ route('dean.sections-offerings.load-subjects') }}', {
+        program_id, year_level, section_name
+      });
+      // Expected response: { ok:true, mode:'create'|'edit', rows:[...] }
+      if(!data || data.ok !== true){
+        toast(data?.message || 'Load failed.');
+        return;
+      }
+      window.__so_section_id = data.section_id || null;
+      renderRows(data.rows || []);
+      // Optional status cue
+      if(data.mode === 'edit'){
+        // editing existing schedule
+        // keep simple for now
+      }
+    }catch(err){
+      toast(err.message || 'Load failed.');
+    }
+  });
+
+
+  btnSave?.addEventListener('click', async function(){
+    const program_id = (programEl?.value || '').trim();
+    const year_level = (yearEl?.value || '').trim();
+    const section_name = (sectionEl?.value || '').trim();
+
+    if(!program_id){ toast('Select Program first.'); return; }
+    if(!year_level){ toast('Select Year Level first.'); return; }
+    if(!section_name){ toast('Enter Section Name.'); sectionEl?.focus(); return; }
+
+    const trs = Array.from(tbody?.querySelectorAll('tr') || []);
+    if(trs.length === 0){ toast('No subjects to save. Click Load Subjects first.'); return; }
+
+    const rows = trs.map(tr => {
+      const subject_id = tr.dataset.subjectId || '';
+      const day = tr.querySelector('select.w-day')?.value || '';
+      const times = tr.querySelectorAll('input.w-time');
+      const time_start = times[0]?.value || '';
+      const time_end = times[1]?.value || '';
+      const room = tr.querySelector('input.w-room')?.value || '';
+      const seat_limit_raw = tr.querySelector('input.w-limit')?.value || '';
+      const seat_limit = seat_limit_raw.replace(/[^0-9]/g, '');
+
+      if (seat_limit_raw !== '' && seat_limit === '') {
+        throw new Error('Limit must contain numbers only.');
+      }
+
+      if (seat_limit !== '' && parseInt(seat_limit, 10) <= 0) {
+        throw new Error('Limit must be greater than 0.');
+      }
+
+      return { subject_id, day, time_start, time_end, room, seat_limit };
+    });
+
+    try{
+      const data = await postJson('{{ route('dean.sections-offerings.save') }}', {
+        program_id,
+        year_level,
+        section_name,
+        section_id: window.__so_section_id || null,
+        rows
+      });
+
+      if(!data || data.ok !== true){
+        toast(data?.message || 'Save failed.');
+        return;
+      }
+
+      window.__so_section_id = data.section_id || window.__so_section_id || null;
+      toast('Saved.');
+    }catch(err){
+      toast(err.message || 'Save failed.');
+    }
+  });
+
+})();
+</script>
+
+
 @endsection

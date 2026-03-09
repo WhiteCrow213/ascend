@@ -32,6 +32,19 @@ class PreRegistrationStatusController extends Controller
 
         $newStatus = $request->application_status;
 
+        // Prevent status changes once already approved
+        if (($prereg->application_status ?? null) === 'approved' && $newStatus === 'rejected') {
+            return redirect()->back()->withErrors([
+                'status' => 'Approved applicants cannot be changed to rejected.',
+            ]);
+        }
+
+        if (($prereg->application_status ?? null) === 'approved' && $newStatus === 'approved') {
+            return redirect()->back()->withErrors([
+                'status' => 'This applicant has already been approved.',
+            ]);
+        }
+
         // Always update prereg status
         DB::table('tbl_prereg_applicants')->where('prereg_id', $preregId)->update([
             'application_status' => $newStatus,

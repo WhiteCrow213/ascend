@@ -9,6 +9,7 @@ use App\Http\Controllers\Admissions\EnrollmentController;
 use App\Http\Controllers\Utilities\TermController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Students\StudentProfileController;
+use App\Http\Controllers\Dean\SectionsOfferingsController;
 
 
 Route::get('/login', function () {
@@ -205,6 +206,11 @@ Route::get('/dean', function () {
 })->name('dean.index');
 
 // Sections & Offerings (Dean schedule builder)
-Route::get('/dean/sections-offerings', function () {
-    return view('dean.SectionsOfferingsForm');
-})->name('dean.sections-offerings');
+Route::get('/dean/sections-offerings', [SectionsOfferingsController::class, 'index'])
+    ->name('dean.sections-offerings');
+
+Route::post('/dean/sections-offerings/load-subjects', [SectionsOfferingsController::class, 'loadSubjects'])
+    ->name('dean.sections-offerings.load-subjects');
+
+Route::post('/dean/sections-offerings/save', [SectionsOfferingsController::class, 'save'])
+    ->name('dean.sections-offerings.save');

@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 
 class PreRegistrationController extends Controller
 {
@@ -20,6 +21,7 @@ class PreRegistrationController extends Controller
     public function index(Request $request)
     {
         $search = trim((string) $request->query('q', ''));
+        $status = trim((string) $request->query('status', ''));
 
         $query = DB::table('tbl_prereg_applicants')
             // Keep Blade compatibility: use prereg_id as "studID" for routes/modals
@@ -32,6 +34,11 @@ class PreRegistrationController extends Controller
                   ->orWhere('FirstName', 'like', "%{$search}%")
                   ->orWhere('FirstProgramChoice', 'like', "%{$search}%");
             });
+        }
+
+
+        if ($status !== '' && $status !== 'all') {
+            $query->where('application_status', $status);
         }
 
         $applicants = $query
@@ -84,7 +91,7 @@ class PreRegistrationController extends Controller
 
             'ContactNo'   => ['required', 'string', 'max:20'],
             'email'       => ['required', 'email', 'max:50'],
-            'Birthdate'   => ['required', 'date'],
+            'Birthdate'   => ['required', 'date', 'before_or_equal:' . Carbon::now()->subYears(16)->format('Y-m-d')],
             'place_of_birth' => ['nullable', 'string', 'max:255'],
             'Gender'      => ['required', 'string', 'max:10'],
             'Citizenship' => ['required', 'string', 'max:20'],
@@ -153,6 +160,8 @@ class PreRegistrationController extends Controller
 
             // Step 5 photo (optional) - cropped photo data URL (base64)
             'profile_photo_cropped' => ['nullable', 'string'],
+        ], [
+            'Birthdate.before_or_equal' => 'Applicant must be at least 16 years old.',
         ]);
         // Enforce Religion "Others" behavior
         if (($validated['Religion'] ?? null) === 'Others') {

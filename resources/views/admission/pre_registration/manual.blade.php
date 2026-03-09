@@ -104,7 +104,8 @@
     {{-- ROW 3 (Birthdate + Place of Birth + Gender) --}}
     <div class="field">
       <label>Birthdate</label>
-      <input name="Birthdate" type="date" value="{{ old('Birthdate') }}" required>
+      <input name="Birthdate" id="Birthdate" type="date" value="{{ old('Birthdate') }}" max="{{ \Carbon\Carbon::now()->subYears(16)->format('Y-m-d') }}" required>
+      <small id="age_display" class="hint"></small>
     </div>
 
     <div class="field">
@@ -1072,6 +1073,73 @@
 
     document.querySelectorAll('input, select, textarea')
       .forEach(el => el.removeAttribute('disabled'));
+  });
+
+
+  // =========================
+  // Birthdate age helper (16+)
+  // =========================
+  const birthInput = document.getElementById('Birthdate');
+  const ageDisplay = document.getElementById('age_display');
+
+  function calculateAge(dateString) {
+    const today = new Date();
+    const birthDate = new Date(dateString);
+
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+
+    return age;
+  }
+
+  function updateAgeDisplay() {
+    if (!birthInput || !ageDisplay) return;
+
+    if (!birthInput.value) {
+      ageDisplay.textContent = '';
+      return;
+    }
+
+    const age = calculateAge(birthInput.value);
+    ageDisplay.textContent = Number.isFinite(age) ? `Age: ${age} years old` : '';
+  }
+
+  birthInput && birthInput.addEventListener('change', updateAgeDisplay);
+  updateAgeDisplay();
+
+  // =========================
+  // Contact number auto-format
+  // 09123456789 -> 0912-345-6789
+  // =========================
+  function formatMobileNumber(value) {
+    const digits = String(value || '').replace(/\D/g, '').slice(0, 11);
+
+    if (digits.length <= 4) return digits;
+    if (digits.length <= 7) return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+    return `${digits.slice(0, 4)}-${digits.slice(4, 7)}-${digits.slice(7)}`;
+  }
+
+  document.addEventListener('input', function (e) {
+    const target = e.target;
+    if (!target || !target.name) return;
+
+    const isContactField =
+      target.name === 'ContactNo' ||
+      target.name === 'guardians[0][contact_number]' ||
+      target.name === 'guardians[1][contact_number]' ||
+      target.name === 'guardians[2][contact_number]';
+
+    if (!isContactField) return;
+
+    target.value = formatMobileNumber(target.value);
+  });
+
+  document.querySelectorAll('input[name="ContactNo"], input[name="guardians[0][contact_number]"], input[name="guardians[1][contact_number]"], input[name="guardians[2][contact_number]"]').forEach(function(input){
+    input.value = formatMobileNumber(input.value);
   });
 
   showStep(1);

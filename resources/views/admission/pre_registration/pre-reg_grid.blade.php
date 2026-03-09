@@ -255,6 +255,10 @@
 </style>
 
 <script>
+@if($errors->has('status'))
+  alert(@json($errors->first('status')));
+@endif
+
 (function () {
   // ======================
   // Search UX (safe/minimal)
@@ -294,6 +298,14 @@
     });
   }
 
+  // Status dropdown filter
+  const statusSelect = document.getElementById('preregStatusSelect');
+  if (statusSelect && form) {
+    statusSelect.addEventListener('change', () => {
+      form.submit();
+    });
+  }
+
   // ======================
   // Viewer Modal (iframe)
   // ======================
@@ -328,9 +340,20 @@
       if (frame) frame.src = `{{ url('/admission/prereg') }}/${id}/viewer`;
 
       const action = `{{ url('/admission/prereg') }}/${id}/status`;
+      const currentStatus = (viewBtn.dataset.status || 'pending').toLowerCase();
+
       if (pdfLink) pdfLink.href = `{{ url('/admission/prereg') }}/${id}/pdf`;
       if (approveForm) approveForm.action = action;
       if (rejectForm)  rejectForm.action  = action;
+
+      const approveBtn = approveForm ? approveForm.querySelector('button[type="submit"]') : null;
+      const rejectBtn  = rejectForm ? rejectForm.querySelector('button[type="submit"]') : null;
+
+      if (approveForm) approveForm.style.display = currentStatus === 'approved' ? 'none' : '';
+      if (rejectForm)  rejectForm.style.display  = currentStatus === 'approved' ? 'none' : '';
+
+      if (approveBtn) approveBtn.disabled = currentStatus === 'approved';
+      if (rejectBtn)  rejectBtn.disabled  = currentStatus === 'approved';
 
       const mStud = document.getElementById('mStudID');
       if (mStud) mStud.value = id;
