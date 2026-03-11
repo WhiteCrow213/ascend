@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dean;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class SectionsOfferingsController extends Controller
 {
@@ -63,14 +64,30 @@ class SectionsOfferingsController extends Controller
 
         $semester = (string) $activeTerm->semester; // expected: '1', '2', or 'summer'
 
+        $IDcurr = DB::table('tbl_program')
+            ->where('IDProgram', $program_id)
+            ->value('IDcurr');
+
+        if (!$IDcurr) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Selected program has no curriculum (IDcurr) assigned.',
+            ], 422);
+        }
+
         // 1) Check if section already exists for active term + program + year + section name
-        $section = DB::table('tbl_sections')
+        $sectionQuery = DB::table('tbl_sections')
             ->select('section_id')
             ->where('term_id', $activeTerm->term_id)
             ->where('program_id', $program_id)
             ->where('year_level', $year_level)
-            ->where('section_name', $section_name)
-            ->first();
+            ->where('section_name', $section_name);
+
+        if (Schema::hasColumn('tbl_sections', 'IDcurr')) {
+            $sectionQuery->where('IDcurr', $IDcurr);
+        }
+
+        $section = $sectionQuery->first();
 
         $subjectsTable = $this->resolveSubjectsTable();
 
@@ -95,6 +112,10 @@ class SectionsOfferingsController extends Controller
                         WHEN e.FacultyFirstName IS NULL OR e.FacultyFirstName = '' THEN e.FacultyLastName
                         ELSE CONCAT(UPPER(LEFT(e.FacultyFirstName, 1)), '.', e.FacultyLastName)
                     END as instructor_display"),
+                    DB::raw("(SELECT COUNT(*) 
+                              FROM tbl_student_studyload sl 
+                              WHERE sl.offering_id = o." . $this->resolveSectionOfferingsPrimaryKey() . " 
+                                AND sl.term_id = " . (int) $activeTerm->term_id . ") as enrolled_count"),
                 ])
                 ->where('o.section_id', $section->section_id)
                 ->orderBy('s.CourseCode')
@@ -110,17 +131,6 @@ class SectionsOfferingsController extends Controller
         }
 
         // CREATE MODE: Load curriculum subjects (TBA schedules)
-        $IDcurr = DB::table('tbl_program')
-            ->where('IDProgram', $program_id)
-            ->value('IDcurr');
-
-        if (!$IDcurr) {
-            return response()->json([
-                'ok' => false,
-                'message' => 'Selected program has no curriculum (IDcurr) assigned.',
-            ], 422);
-        }
-
         $rows = DB::table('tbl_currmap as cm')
             ->join($subjectsTable . ' as s', 's.IDsubj', '=', 'cm.IDsubj')
             ->select([
@@ -135,6 +145,7 @@ class SectionsOfferingsController extends Controller
                 DB::raw('NULL as seat_limit'),
                 DB::raw('NULL as instructor_id'),
                 DB::raw("'' as instructor_display"),
+                DB::raw('0 as enrolled_count'),
             ])
             ->where('cm.IDcurr', $IDcurr)
             ->where('cm.IDyearlvl', $year_level)
@@ -186,6 +197,43 @@ SQL;
 
         $cached = $rows[0]->TABLE_NAME;
         return $cached;
+
+    }
+
+    /**
+     * Resolve the primary key column of tbl_section_offerings without assuming it.
+     */
+    private function resolveSectionOfferingsPrimaryKey(): string
+    {
+        static $cachedPrimaryKey = null;
+        if ($cachedPrimaryKey) {
+            return $cachedPrimaryKey;
+        }
+
+        $dbName = DB::getDatabaseName();
+
+        $sql = <<<SQL
+SELECT k.COLUMN_NAME
+FROM information_schema.TABLE_CONSTRAINTS tc
+JOIN information_schema.KEY_COLUMN_USAGE k
+  ON tc.CONSTRAINT_NAME = k.CONSTRAINT_NAME
+ AND tc.TABLE_SCHEMA = k.TABLE_SCHEMA
+ AND tc.TABLE_NAME = k.TABLE_NAME
+WHERE tc.TABLE_SCHEMA = ?
+  AND tc.TABLE_NAME = 'tbl_section_offerings'
+  AND tc.CONSTRAINT_TYPE = 'PRIMARY KEY'
+ORDER BY k.ORDINAL_POSITION
+LIMIT 1
+SQL;
+
+        $rows = DB::select($sql, [$dbName]);
+
+        if (!$rows || !isset($rows[0]->COLUMN_NAME)) {
+            abort(500, 'Primary key for tbl_section_offerings was not found.');
+        }
+
+        $cachedPrimaryKey = $rows[0]->COLUMN_NAME;
+        return $cachedPrimaryKey;
     }
 
         /**
@@ -229,6 +277,17 @@ SQL;
             ], 422);
         }
 
+        $IDcurr = DB::table('tbl_program')
+            ->where('IDProgram', $program_id)
+            ->value('IDcurr');
+
+        if (!$IDcurr) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Selected program has no curriculum (IDcurr) assigned.',
+            ], 422);
+        }
+
         DB::beginTransaction();
         try {
             $section = null;
@@ -242,17 +301,22 @@ SQL;
 
             // Otherwise, find by natural key in active term
             if (!$section) {
-                $section = DB::table('tbl_sections')
+                $sectionQuery = DB::table('tbl_sections')
                     ->where('term_id', $activeTerm->term_id)
                     ->where('program_id', $program_id)
                     ->where('year_level', $year_level)
-                    ->where('section_name', $section_name)
-                    ->first();
+                    ->where('section_name', $section_name);
+
+                if (Schema::hasColumn('tbl_sections', 'IDcurr')) {
+                    $sectionQuery->where('IDcurr', $IDcurr);
+                }
+
+                $section = $sectionQuery->first();
             }
 
             // Create if missing
             if (!$section) {
-                $section_id = DB::table('tbl_sections')->insertGetId([
+                $insertSection = [
                     'term_id'      => $activeTerm->term_id,
                     'program_id'   => $program_id,
                     'year_level'   => $year_level,
@@ -260,13 +324,27 @@ SQL;
                     'is_active'    => 1,
                     'created_at'   => now(),
                     'updated_at'   => now(),
-                ]);
+                ];
+
+                if (Schema::hasColumn('tbl_sections', 'IDcurr')) {
+                    $insertSection['IDcurr'] = $IDcurr;
+                }
+
+                $section_id = DB::table('tbl_sections')->insertGetId($insertSection);
             } else {
                 $section_id = $section->section_id;
 
+                $sectionUpdate = [
+                    'updated_at' => now(),
+                ];
+
+                if (Schema::hasColumn('tbl_sections', 'IDcurr')) {
+                    $sectionUpdate['IDcurr'] = $IDcurr;
+                }
+
                 DB::table('tbl_sections')
                     ->where('section_id', $section_id)
-                    ->update(['updated_at' => now()]);
+                    ->update($sectionUpdate);
             }
 
             // Upsert offerings per subject
@@ -329,6 +407,30 @@ SQL;
 
                     if ($seat_limit <= 0) {
                         throw new \RuntimeException('Limit must be greater than 0.');
+                    }
+                }
+
+                $offeringPrimaryKey = $this->resolveSectionOfferingsPrimaryKey();
+
+                $existingOffering = DB::table('tbl_section_offerings')
+                    ->select($offeringPrimaryKey)
+                    ->where('section_id', $section_id)
+                    ->where('subject_id', $subject_id)
+                    ->first();
+
+                if ($existingOffering && $seat_limit !== null) {
+                    $offeringId = $existingOffering->{$offeringPrimaryKey};
+
+                    $currentEnrolled = DB::table('tbl_student_studyload')
+                        ->where('offering_id', $offeringId)
+                        ->where('term_id', $activeTerm->term_id)
+                        ->count();
+
+                    if ($currentEnrolled > $seat_limit) {
+                        throw new \RuntimeException(
+                            'Limit cannot be set to ' . $seat_limit .
+                            ' because ' . $currentEnrolled . ' student(s) are already officially enrolled in this subject.'
+                        );
                     }
                 }
 

@@ -6,6 +6,7 @@ use App\Http\Controllers\Admissions\PreRegistrationController;
 use App\Http\Controllers\Admissions\PreRegistrationStatusController;
 use App\Http\Controllers\GeoController;
 use App\Http\Controllers\Admissions\EnrollmentController;
+use App\Http\Controllers\Admissions\EnrollmentSubjectLoadingController;
 use App\Http\Controllers\Utilities\TermController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Students\StudentProfileController;
@@ -78,25 +79,34 @@ Route::post('/enrollment/{studID}/start', [EnrollmentController::class, 'start']
 Route::get('/enrollment/workspace/{enrollmentId}', [EnrollmentController::class, 'show'])
     ->name('admission.enrollment.show');
 
-Route::get('/enrollment/workspace/{enrollmentId}/form', [EnrollmentController::class, 'showForm'])
+Route::get('/enrollment/workspace/{enrollmentId}/form', [EnrollmentSubjectLoadingController::class, 'showForm'])
     ->name('admission.enrollment.form');
 
-Route::post('/enrollment/workspace/{enrollmentId}/apply-academic', [EnrollmentController::class, 'applyAcademic'])
+Route::post('/enrollment/workspace/{enrollmentId}/apply-academic', [EnrollmentSubjectLoadingController::class, 'applyAcademic'])
     ->name('admission.enrollment.applyAcademic');
 
+// Load sections when Year Level is selected
+Route::get('/enrollment/workspace/{enrollmentId}/sections', [EnrollmentSubjectLoadingController::class, 'getSections'])
+    ->name('admission.enrollment.sections');
 
-
+// Load offerings when Section is selected
+Route::get('/enrollment/workspace/{enrollmentId}/offerings', [EnrollmentSubjectLoadingController::class, 'getOfferings'])
+    ->name('admission.enrollment.offerings');
 
 
 // Add Subject modal (offerings search + add)
-Route::get('/enrollment/workspace/{enrollmentId}/offerings/search', [EnrollmentController::class, 'offeringsSearch'])
+Route::get('/enrollment/workspace/{enrollmentId}/offerings/search', [EnrollmentSubjectLoadingController::class, 'offeringsSearch'])
     ->name('admission.enrollment.offerings.search');
-Route::post('/enrollment/workspace/{enrollmentId}/offerings/add', [EnrollmentController::class, 'offeringsAdd'])
+
+Route::post('/enrollment/workspace/{enrollmentId}/offerings/add', [EnrollmentSubjectLoadingController::class, 'offeringsAdd'])
     ->name('admission.enrollment.offerings.add');
 
 // Remove subject from saved enrollment load
-Route::post('/enrollment/workspace/{enrollmentId}/subjects/{enrollSubjId}/remove', [EnrollmentController::class, 'subjectRemove'])
+Route::post('/enrollment/workspace/{enrollmentId}/subjects/{enrollSubjId}/remove', [EnrollmentSubjectLoadingController::class, 'subjectRemove'])
     ->name('admission.enrollment.subjects.remove');
+
+Route::post('/enrollment/workspace/{enrollmentId}/subjects/remove-selected', [EnrollmentSubjectLoadingController::class, 'removeSelected'])
+    ->name('admission.enrollment.removeSelected');
 
 
 Route::middleware(['web'])->group(function () {
@@ -126,9 +136,9 @@ Route::middleware(['web'])->group(function () {
     Route::post('/pre-registration/manual', [PreRegistrationController::class, 'store'])
         ->name('admission.prereg.manual.store');
 
-        // Success page after manual prereg save
-Route::get('/pre-registration/success/{studID}', [PreRegistrationController::class, 'success'])
-    ->name('admission.prereg.success');
+    // Success page after manual prereg save
+    Route::get('/pre-registration/success/{studID}', [PreRegistrationController::class, 'success'])
+        ->name('admission.prereg.success');
 
 
     // Viewer (iframe modal "View" button)
@@ -150,7 +160,7 @@ Route::get('/pre-registration/success/{studID}', [PreRegistrationController::cla
 // UTILITIES MODULE
 // ===============================
 
-    // Utilities Hub
+// Utilities Hub
 Route::get('/utilities', function () {
     return view('utilities.index');
 })->name('utilities.index');
@@ -162,40 +172,34 @@ Route::prefix('utilities')->group(function () {
     Route::post('/terms/{termId}/active', [TermController::class, 'setActive'])->name('utilities.terms.active');
 
     Route::get('/master-data', function () {
-    return view('utilities.master-data');
-})->name('utilities.master-data');
+        return view('utilities.master-data');
+    })->name('utilities.master-data');
 
-// Programs
-Route::prefix('programs')->name('utilities.programs.')->group(function () {
-    Route::get('/', [App\Http\Controllers\Utilities\ProgramsController::class, 'index'])->name('index');
-    Route::post('/store', [App\Http\Controllers\Utilities\ProgramsController::class, 'store'])->name('store');
-    Route::post('/update/{id}', [App\Http\Controllers\Utilities\ProgramsController::class, 'update'])->name('update');
-});
+    // Programs
+    Route::prefix('programs')->name('utilities.programs.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Utilities\ProgramsController::class, 'index'])->name('index');
+        Route::post('/store', [App\Http\Controllers\Utilities\ProgramsController::class, 'store'])->name('store');
+        Route::post('/update/{id}', [App\Http\Controllers\Utilities\ProgramsController::class, 'update'])->name('update');
+    });
 
+    // Curriculum
+    Route::prefix('curriculum')->name('utilities.curriculum.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Utilities\CurriculumController::class, 'index'])->name('index');
+        Route::post('/store', [App\Http\Controllers\Utilities\CurriculumController::class, 'store'])->name('store');
+        Route::post('/update/{id}', [App\Http\Controllers\Utilities\CurriculumController::class, 'update'])->name('update');
+    });
 
+    // Curriculum Map (assign subjects to curriculum)
+    Route::get('/curriculum-map', [App\Http\Controllers\Utilities\CurriculumController::class, 'mapIndex'])->name('utilities.curriculum.map.index');
+    Route::post('/curriculum-map/store', [App\Http\Controllers\Utilities\CurriculumController::class, 'mapStore'])->name('utilities.curriculum.map.store');
+    Route::post('/curriculum-map/{CurrMapID}/delete', [App\Http\Controllers\Utilities\CurriculumController::class, 'mapDelete'])->name('utilities.curriculum.map.delete');
 
-
-
-
-// Curriculum
-Route::prefix('curriculum')->name('utilities.curriculum.')->group(function () {
-    Route::get('/', [App\Http\Controllers\Utilities\CurriculumController::class, 'index'])->name('index');
-    Route::post('/store', [App\Http\Controllers\Utilities\CurriculumController::class, 'store'])->name('store');
-    Route::post('/update/{id}', [App\Http\Controllers\Utilities\CurriculumController::class, 'update'])->name('update');
-});
-
-
-// Curriculum Map (assign subjects to curriculum)
-Route::get('/curriculum-map', [App\Http\Controllers\Utilities\CurriculumController::class, 'mapIndex'])->name('utilities.curriculum.map.index');
-Route::post('/curriculum-map/store', [App\Http\Controllers\Utilities\CurriculumController::class, 'mapStore'])->name('utilities.curriculum.map.store');
-Route::post('/curriculum-map/{CurrMapID}/delete', [App\Http\Controllers\Utilities\CurriculumController::class, 'mapDelete'])->name('utilities.curriculum.map.delete');
-
-// Subjects
-Route::prefix('subjects')->name('utilities.subjects.')->group(function () {
-    Route::get('/', [App\Http\Controllers\Utilities\SubjectsController::class, 'index'])->name('index');
-    Route::post('/store', [App\Http\Controllers\Utilities\SubjectsController::class, 'store'])->name('store');
-    Route::post('/update/{id}', [App\Http\Controllers\Utilities\SubjectsController::class, 'update'])->name('update');
-});
+    // Subjects
+    Route::prefix('subjects')->name('utilities.subjects.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Utilities\SubjectsController::class, 'index'])->name('index');
+        Route::post('/store', [App\Http\Controllers\Utilities\SubjectsController::class, 'store'])->name('store');
+        Route::post('/update/{id}', [App\Http\Controllers\Utilities\SubjectsController::class, 'update'])->name('update');
+    });
 });
 
 // ===============================

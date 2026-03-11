@@ -558,23 +558,57 @@
       </div>
     </div>
 
-    <div class="ew-main">
-      <div class="ew-welcome">
-        {{-- Simple inline SVG illustration placeholder --}}
-        <svg class="ew-illu" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <rect x="22" y="18" width="84" height="92" rx="14" fill="rgba(255,255,255,.10)" stroke="rgba(255,255,255,.20)"/>
-          <rect x="36" y="34" width="56" height="8" rx="4" fill="rgba(167,139,250,.55)"/>
-          <rect x="36" y="52" width="44" height="8" rx="4" fill="rgba(255,255,255,.25)"/>
-          <rect x="36" y="70" width="50" height="8" rx="4" fill="rgba(255,255,255,.22)"/>
-          <rect x="36" y="88" width="34" height="8" rx="4" fill="rgba(255,255,255,.20)"/>
-          <circle cx="96" cy="30" r="10" fill="rgba(34,139,84,.18)" stroke="rgba(34,139,84,.35)"/>
-          <path d="M92 30.2l2.6 2.6L100 27.4" stroke="rgba(34,139,84,1)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+    
+<div class="ew-main">
+  <div style="width:100%;">
+    <div style="border:1px solid rgba(20,35,75,.10); border-radius:16px; overflow:hidden; background:#fff;">
 
-        <h2>Welcome to the student overview tab.</h2>
-        <p>Please select an option from the tabs above to get started.</p>
+      <div style="padding:12px 14px; border-bottom:1px solid rgba(0,0,0,.06); font-weight:700;">
+        Subject Load
       </div>
+
+      <div style="overflow:auto; max-height:420px;">
+        <table style="width:100%; border-collapse:separate; border-spacing:0; font-size:13px;">
+          <thead>
+            <tr>
+              <th style="width:40px;"><input type="checkbox"></th>
+              <th style="width:110px;">Code</th>
+              <th style="width:520px;">Title</th>
+              <th style="width:64px; text-align:right;">Units</th>
+              <th style="width:320px; text-align:center;">Schedule</th>
+              <th style="width:80px; text-align:center;">Room</th>
+              <th style="width:160px; text-align:center;">Instructor</th>
+              <th style="width:60px; text-align:right;">Limit</th>
+              <th style="width:80px; text-align:right;">Enrolled</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- rows will be loaded later -->
+          </tbody>
+        </table>
+      </div>
+
+      <div style="padding:10px 14px; border-top:1px solid rgba(0,0,0,.06); display:flex; justify-content:space-between;">
+        <div style="font-size:13px;">
+          <strong>Subjects:</strong> 0
+          &nbsp;&nbsp;
+          <strong>Units:</strong> 0
+        </div>
+
+        <div>
+          <button style="padding:6px 12px; border-radius:8px; border:1px solid rgba(0,0,0,.12); background:#fff;">
+            Remove Selected
+          </button>
+          <button style="padding:6px 12px; border-radius:8px; border:1px solid rgba(85,45,170,.35); background:rgba(85,45,170,.10); font-weight:600;">
+            Save Load
+          </button>
+        </div>
+      </div>
+
     </div>
+  </div>
+</div>
+</div>
 
   </div>
 </div>
