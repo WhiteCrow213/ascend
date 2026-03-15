@@ -755,4 +755,108 @@ class EnrollmentSubjectLoadingController extends Controller
         ]);
     }
 
+
+
+    /**
+     * Save current enrollment load into official student studyload table
+     */
+    public function saveStudyLoad(Request $request, int $enrollmentId)
+    {
+        if (!Schema::hasTable('tbl_enrollment_subjects')) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Enrollment subjects table not found.'
+            ], 500);
+        }
+
+        if (!Schema::hasTable('tbl_student_studyload')) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Student studyload table not found.'
+            ], 500);
+        }
+
+        $enrollment = DB::table('tbl_enrollments')
+            ->select(['enrollment_id', 'studID', 'term_id'])
+            ->where('enrollment_id', $enrollmentId)
+            ->first();
+
+        if (!$enrollment) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Enrollment not found.'
+            ], 404);
+        }
+
+        $activeTermId = DB::table('tbl_terms')
+            ->where('is_active', 1)
+            ->value('term_id');
+
+        $termIdToUse = $activeTermId ?: $enrollment->term_id;
+
+        if (empty($termIdToUse)) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'No active term found for saving study load.'
+            ], 422);
+        }
+
+        $loadRows = DB::table('tbl_enrollment_subjects')
+            ->where('enrollment_id', $enrollmentId)
+            ->whereNotNull('offering_id')
+            ->select(['offering_id'])
+            ->get();
+
+        if ($loadRows->isEmpty()) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'No subjects found in Student Load.'
+            ], 422);
+        }
+
+        $offeringIds = $loadRows
+            ->pluck('offering_id')
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        if (empty($offeringIds)) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'No valid subject offerings found in Student Load.'
+            ], 422);
+        }
+
+        DB::transaction(function () use ($enrollment, $termIdToUse, $offeringIds) {
+            DB::table('tbl_student_studyload')
+                ->where('student_id', $enrollment->studID)
+                ->where('term_id', $termIdToUse)
+                ->delete();
+
+            $now = now();
+            $insertRows = collect($offeringIds)
+                ->map(function ($offeringId) use ($enrollment, $termIdToUse, $now) {
+                    return [
+                        'student_id' => $enrollment->studID,
+                        'offering_id' => $offeringId,
+                        'term_id' => $termIdToUse,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                })
+                ->values()
+                ->all();
+
+            DB::table('tbl_student_studyload')->insert($insertRows);
+        });
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Student load saved successfully.',
+            'saved_count' => count($offeringIds)
+        ]);
+    }
+
 }

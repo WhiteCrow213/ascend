@@ -41,7 +41,7 @@
     border:1px solid rgba(91,76,230,.25);
     background:#fff; color:#4b3fd1; cursor:pointer;
     height:38px; display:inline-flex; align-items:center; justify-content:center; line-height:1; white-space:nowrap;
-    text-decoration:none;
+    text-decoration:none; box-sizing:border-box;
   }
   .enf-btn-primary{
     border:none;
@@ -390,8 +390,8 @@
   </div>
 
   <div class="enf-actions">
-    <a class="enf-btn" href="{{ route('admission.enrollment.show', ['enrollmentId' => $enrollment->enrollment_id]) }}">Back to Workspace</a>
-    <button class="enf-btn enf-btn-primary" aria-disabled="true" type="button">Save Draft (Next)</button>
+    <a class="enf-btn" href="{{ route('admission.enrollment.show', ['enrollmentId' => $enrollment->enrollment_id]) }}">Back</a>
+    <button class="enf-btn enf-btn-primary" type="button" id="saveStudyLoadBtn">Save</button>
   </div>
 
 </div>
@@ -718,6 +718,7 @@
 
         const removeSelectedBtn = document.getElementById('removeSelectedBtn');
         const selectAllStudentLoad = document.getElementById('selectAllStudentLoad');
+        const saveStudyLoadBtn = document.getElementById('saveStudyLoadBtn');
 
         function updateRemoveSelectedButtonState() {
             if (!removeSelectedBtn) return;
@@ -777,6 +778,24 @@
         }
 
         bindStudentLoadCheckboxes();
+
+        if (saveStudyLoadBtn) {
+            saveStudyLoadBtn.addEventListener('click', async function () {
+                saveStudyLoadBtn.disabled = true;
+                saveStudyLoadBtn.textContent = 'Saving...';
+
+                const url = @json(route('admission.enrollment.saveStudyLoad', ['enrollmentId' => $enrollment->enrollment_id]));
+
+                try {
+                    await postJson(url, {});
+                    window.location.reload();
+                } catch (error) {
+                    alert(error.message || 'Failed to save student load.');
+                    saveStudyLoadBtn.textContent = 'Save';
+                    saveStudyLoadBtn.disabled = false;
+                }
+            });
+        }
 
         if (yearLevelSelect.value) {
             loadSections(yearLevelSelect.value);

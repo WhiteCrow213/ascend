@@ -12,6 +12,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Students\StudentProfileController;
 use App\Http\Controllers\Dean\SectionsOfferingsController;
 use App\Http\Controllers\Faculty\FacultyController;
+use App\Http\Controllers\Utilities\AssessmentTemplateController;
 
 
 Route::get('/login', function () {
@@ -174,6 +175,15 @@ Route::prefix('utilities')->group(function () {
     Route::get('/master-data', function () {
         return view('utilities.master-data');
     })->name('utilities.master-data');
+
+    Route::get('/assessment', [AssessmentTemplateController::class, 'create'])
+        ->name('utilities.assessment.index');
+
+    Route::get('/assessment/create', [AssessmentTemplateController::class, 'create'])
+        ->name('utilities.assessment.create');
+
+    Route::post('/assessment/store', [AssessmentTemplateController::class, 'store'])
+        ->name('utilities.assessment.store');
 
     // Programs
     Route::prefix('programs')->name('utilities.programs.')->group(function () {

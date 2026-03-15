@@ -76,7 +76,6 @@
 @section('content')
 <div class="util-hub">
 
-  {{-- This now inherits the SAME styling as Admissions --}}
   <h1>Utilities</h1>
   <p>Choose a section to manage system configuration and master data.</p>
 
@@ -95,6 +94,14 @@
       <div>
         <p class="util-title">Master Data</p>
         <p class="util-sub">Programs, subjects, curriculum, sections</p>
+      </div>
+    </a>
+
+    <a class="util-card" href="{{ route('utilities.assessment.index') }}">
+      <div class="util-icon">💳</div>
+      <div>
+        <p class="util-title">Assessment</p>
+        <p class="util-sub">Assessment templates, charges, and fee setup</p>
       </div>
     </a>
 
